@@ -132,7 +132,7 @@ public class GUIStateEditor extends JPanel implements StatelyListener, ActionLis
             return;
         }
         
-        saveState();
+        saveState(true);
         switchTo(st);
     }
 
@@ -198,7 +198,7 @@ public class GUIStateEditor extends JPanel implements StatelyListener, ActionLis
         revalidate();
     }
 
-    private void saveState()
+    private void saveState(boolean notify)
     {
         if(state == null)
         {
@@ -208,8 +208,11 @@ public class GUIStateEditor extends JPanel implements StatelyListener, ActionLis
         state.setDescription(descriptionArea.getText());
         state.setVirtual(virtualCheckBox.isSelected());
         state.getCode().setSource(codeArea.getTextArea().getText());
-        
-        app.machineModified(this);
+
+        if(notify)
+        {
+            app.machineModified(this);
+        }
     }
 
     private void switchTo(State st)
@@ -260,10 +263,11 @@ public class GUIStateEditor extends JPanel implements StatelyListener, ActionLis
 
         if(source == saveButton)
         {
-            saveState();
+            saveState(true);
         }
         else if(source == renameButton)
         {
+            saveState(false);
             renameState();
         }
     }
