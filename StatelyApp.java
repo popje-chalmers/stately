@@ -322,15 +322,15 @@ public class StatelyApp extends JFrame implements ActionListener
 
         if(source == menuOpen)
         {
-            openFile();
+            open();
         }
         else if(source == menuSave)
         {
-            saveFile();
+            save();
         }
         else if(source == menuSaveAs)
         {
-            saveAsFile();
+            saveAs();
         }
         else if(source == menuQuit)
         {
@@ -455,7 +455,8 @@ public class StatelyApp extends JFrame implements ActionListener
         JOptionPane.showMessageDialog(this, message);
     }
 
-    private void openFile()
+    // "Open" in the menu
+    private void open()
     {
         JFileChooser jfc = new JFileChooser();
         jfc.setFileFilter(FILE_EXTENSION_FILTER);
@@ -463,7 +464,7 @@ public class StatelyApp extends JFrame implements ActionListener
         if(res == JFileChooser.APPROVE_OPTION)
         {
             File f = jfc.getSelectedFile();
-            if(readFromFile(f))
+            if(readFSMFromFile(f))
             {
                 lastSaveFile = f;
                 lastSaveTime = null;
@@ -472,7 +473,8 @@ public class StatelyApp extends JFrame implements ActionListener
         }
     }
 
-    private void saveFile()
+    // "Save" in the menu
+    private void save()
     {
         if(machine == null)
         {
@@ -481,14 +483,15 @@ public class StatelyApp extends JFrame implements ActionListener
         
         if(lastSaveFile == null)
         {
-            saveAsFile();
+            saveAs();
             return;
         }
 
-        saveToFile(lastSaveFile);
+        saveFSMToFile(lastSaveFile);
     }
 
-    private void saveAsFile()
+    // "Save as" in the menu, or "save" when file not yet specified
+    private void saveAs()
     {
         if(machine == null)
         {
@@ -507,37 +510,12 @@ public class StatelyApp extends JFrame implements ActionListener
                 name += "." + EXTENSION;
             }
             File chosenExt = new File(chosen.getParent(), name);
-            saveToFile(chosenExt);
+            saveFSMToFile(chosenExt);
         }
     }
 
-    private void saveToFile(File f)
-    {
-        lastSaveFile = f;
-        if(writeToFile(f))
-        {
-            lastSaveTime = LocalTime.now();
-        }
-        fixTitle();
-    }
-
-    private boolean writeToFile(File f)
-    {
-        try
-        {
-            writeFile(f, machine.toSExp().toString());
-            System.out.println("Wrote successfully to: " + f.getPath());
-            return true;
-        }
-        catch(Throwable t)
-        {
-            t.printStackTrace();
-            JOptionPane.showMessageDialog(this, t.getMessage());
-            return false;
-        }
-    }
-
-    private boolean readFromFile(File f)
+    // Helper for "open"
+    private boolean readFSMFromFile(File f)
     {
         try
         {
@@ -561,6 +539,30 @@ public class StatelyApp extends JFrame implements ActionListener
             JOptionPane.showMessageDialog(this, t.getMessage());
             return false;
         }
+    }
+
+    // Helper for "save" and "save as"
+    private void saveFSMToFile(File f)
+    {
+        try
+        {
+            if(f.getName().equals(""))
+            {
+                throw new IllegalArgumentException("Bad file name");
+            }
+            File tmp = new File(f.getParent(), f.getName() + "~");
+            writeFileSafe(f, tmp, machine.toSExp().toString());
+            System.out.println("Wrote successfully to: " + f.getPath());
+            lastSaveFile = f;
+            lastSaveTime = LocalTime.now();
+        }
+        catch(Throwable t)
+        {
+            t.printStackTrace();
+            JOptionPane.showMessageDialog(this, t.getMessage());
+        }
+
+        fixTitle();
     }
 
     private boolean transform()
@@ -610,32 +612,6 @@ public class StatelyApp extends JFrame implements ActionListener
 
     // Static methods
 
-    private static void transform_out(File f, Machine m) throws IOException
-    {
-        String out = "";
-        out += "-- Cheatsheet:\n";
-        out += "-- (name \"fsmname\")\n";
-        out += "-- (translate <deltaX> <deltaY>)\n";
-        out += "-- (signal \"name\" <kind> \"description\" \"expression code\")\n";
-        out += "--   n.b. <kind> is in {input, expression, statewise}\n";
-        out += "-- (state \"name\" \"description\" <isvirtual> <x> <y> \"state code\")\n";
-        out += "\n";
-        SExp sep = SExp.mkList(new ArrayList<>());
-        java.util.List<SExp> exps = Transformatron.dumpMachine(m, sep);
-        for(SExp exp: exps)
-        {
-            if(exp == sep)
-            {
-                out += "\n";
-            }
-            else
-            {
-                out += exp.toString() + "\n";
-            }
-        }
-        writeFile(f, out);
-    }
-    
     private static Machine transform_in(File f) throws IOException
     {
         Machine m = new Machine("Untitled");
@@ -659,6 +635,48 @@ public class StatelyApp extends JFrame implements ActionListener
         return m;
     }
     
+    private static void transform_out(File f, Machine m) throws IOException
+    {
+        String out = "";
+        out += "-- Cheatsheet:\n";
+        out += "-- (name \"fsmname\")\n";
+        out += "-- (translate <deltaX> <deltaY>)\n";
+        out += "-- (signal \"name\" <kind> \"description\"" + " \"expression code\")\n";
+        out += "--   n.b. <kind> is in {input, expression, statewise}\n";
+        out += "-- (state \"name\" \"description\" <isvirtual> <x> <y> \"state code\")\n";
+        out += "\n";
+        SExp sep = SExp.mkList(new ArrayList<>());
+        java.util.List<SExp> exps = Transformatron.dumpMachine(m, sep);
+        for(SExp exp: exps)
+        {
+            if(exp == sep)
+            {
+                out += "\n";
+            }
+            else
+            {
+                out += exp.toString() + "\n";
+            }
+        }
+        writeFile(f, out);
+    }
+
+    // Writes to a second file, deletes the destination (if it exists), then renames.
+    private static void writeFileSafe(File f, File tmp, String s) throws IOException
+    {
+        writeFile(tmp, s);
+        if(f.exists())
+        {
+            if(!f.delete())
+            {
+                throw new Error("Could not delete " + f.getPath());
+            }
+        }
+        if(!tmp.renameTo(f))
+        {
+            throw new Error("Could not rename " + tmp.getPath() + " to " + f.getPath());
+        }
+    }
 
     // Adds a \n
     private static void writeFile(File f, String s) throws IOException
