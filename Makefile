@@ -1,12 +1,12 @@
 all: distclean
-	javac *.java
-	jar cfe Stately.jar Stately *.class
+	javac machine/*.java app/*.java
+	jar cfe Stately.jar app.Stately machine/*.class app/*.class
 
 run: all
 	java -jar Stately.jar
 
 clean:
-	-rm *.class
+	-rm machine/*.class app/*.class
 
 distclean: clean
 	-rm Stately.jar
