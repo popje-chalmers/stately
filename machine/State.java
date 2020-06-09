@@ -48,7 +48,7 @@ public class State implements Named, Positionable
         Map<String,SExp> content = new TreeMap<String,SExp>();
         content.put("name", SExp.mkString(name));
         content.put("description", SExp.mkString(description));
-        content.put("virtual", SExp.mkInt(virtual ? 1 : 0));
+        content.put("virtual", SExp.mkBoolAsInt(virtual));
         content.put("x", SExp.mkInt(x));
         content.put("y", SExp.mkInt(y));
         content.put("code", SExp.mkString(code.getSource()));
@@ -63,47 +63,12 @@ public class State implements Named, Positionable
             throw UnpackError.badMap();
         }
 
-        SExp nameExp = content.get("name");
-        if(nameExp == null || nameExp.getKind() != SExpKind.STRING)
-        {
-            throw UnpackError.badField("name");
-        }
-        String name = nameExp.getString();
-
-        SExp descriptionExp = content.get("description");
-        if(descriptionExp == null || descriptionExp.getKind() != SExpKind.STRING)
-        {
-            throw UnpackError.badField("description");
-        }
-        String description = descriptionExp.getString();
-
-        SExp virtualExp = content.get("virtual");
-        if(virtualExp == null || virtualExp.getKind() != SExpKind.INT)
-        {
-            throw UnpackError.badField("virtual");
-        }
-        boolean virtual = virtualExp.getInt() != 0;
-
-        SExp xExp = content.get("x");
-        if(xExp == null || xExp.getKind() != SExpKind.INT)
-        {
-            throw UnpackError.badField("x");
-        }
-        int x = xExp.getInt();
-
-        SExp yExp = content.get("y");
-        if(yExp == null || yExp.getKind() != SExpKind.INT)
-        {
-            throw UnpackError.badField("y");
-        }
-        int y = yExp.getInt();
-        
-        SExp codeExp = content.get("code");
-        if(codeExp == null || codeExp.getKind() != SExpKind.STRING)
-        {
-            throw UnpackError.badField("code");
-        }
-        String code = codeExp.getString();
+        String name = Unpack.getStringItem(content, "name", false, null);
+        String description = Unpack.getStringItem(content, "description", false, null);
+        boolean virtual = Unpack.getBooleanItem(content, "virtual", false, false);
+        int x = Unpack.getIntItem(content, "x", false, 0);
+        int y = Unpack.getIntItem(content, "y", false, 0);
+        String code = Unpack.getStringItem(content, "code", false, null);
         
         State st = new State(name, m);
         st.setDescription(description);
@@ -111,5 +76,10 @@ public class State implements Named, Positionable
         st.getCode().setSource(code);
         st.setPosition(x,y);
         return st;
+    }
+
+    public String toString()
+    {
+        return name;
     }
 }

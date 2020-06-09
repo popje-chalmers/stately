@@ -35,6 +35,11 @@ public class SelectionManager<T>
     {
         selected.add(t);
     }
+
+    public void select(Collection<T> ts)
+    {
+        selected.addAll(ts);
+    }
     
     public void toggle(T t)
     {

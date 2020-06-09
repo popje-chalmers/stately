@@ -20,6 +20,9 @@ public class IssuesListing extends JPanel implements StatelyListener
         setBackground(app.colors.editor_background);
         
         renderer = new IssueCellRenderer(app);
+        issueList = new JList<>();
+        issueList.setOpaque(false);
+        issueList.setCellRenderer(renderer);
         
         issuesPanel = new JPanel();
         issuesPanel.setLayout(new BorderLayout());
@@ -57,7 +60,6 @@ public class IssuesListing extends JPanel implements StatelyListener
         
         if(count == 0)
         {
-            issueList = null;
             JLabel tmp = new JLabel("No issues!");
             tmp.setForeground(app.colors.issue_none);
             tmp.setOpaque(false);
@@ -67,14 +69,8 @@ public class IssuesListing extends JPanel implements StatelyListener
         }
         else
         {
-            Issue[] items = new Issue[count];
-            for(int i = 0; i < count; i++)
-            {
-                items[i] = issues.get(i);
-            }
-            issueList = new JList<>(items);
-            issueList.setOpaque(false);
-            issueList.setCellRenderer(renderer);
+            Issue[] items = issues.toArray(new Issue[issues.size()]);
+            issueList.setListData(items);
             issuesPanel.removeAll();
             issuesPanel.setLayout(new BorderLayout());
             issuesPanel.add(issueList, BorderLayout.CENTER);

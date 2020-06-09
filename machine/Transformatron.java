@@ -73,7 +73,7 @@ public class Transformatron
 
     private void interpretSignal(SExp exp, List<SExp> args)
     {
-        if(args.size() != 4)
+        if(args.size() != 5)
         {
             throw TransformatronError.bad(exp);
         }
@@ -84,10 +84,17 @@ public class Transformatron
         {
             throw TransformatronError.bad(args.get(1));
         }
-        String description = gimme(args, 2, SExpKind.STRING).getString();
-        String code = gimme(args, 3, SExpKind.STRING).getString();
+        int internalInt = gimme(args, 2, SExpKind.INT).getInt();
+        if(internalInt != 0 && internalInt != 1)
+        {
+            throw TransformatronError.bad(args.get(2));
+        }
+        boolean internal = internalInt != 0;
+        String description = gimme(args, 3, SExpKind.STRING).getString();
+        String code = gimme(args, 4, SExpKind.STRING).getString();
 
         Signal s = new Signal(name, kind, m);
+        s.setInternal(internal);
         s.setDescription(description);
         s.getCode().setSource(code);
         m.addSignal(s);
@@ -187,6 +194,7 @@ public class Transformatron
         list.add(SExp.mkAtom(CMD_SIGNAL));
         list.add(SExp.mkString(s.getName()));
         list.add(SExp.mkAtom(SignalKind.toAtom(s.getKind())));
+        list.add(SExp.mkBoolAsInt(s.getInternal()));
         list.add(SExp.mkString(s.getDescription()));
         list.add(SExp.mkString(s.getCode().getSource()));
         out.add(SExp.mkList(list));
@@ -198,7 +206,7 @@ public class Transformatron
         list.add(SExp.mkAtom(CMD_STATE));
         list.add(SExp.mkString(st.getName()));
         list.add(SExp.mkString(st.getDescription()));
-        list.add(SExp.mkInt(st.isVirtual() ? 1 : 0));
+        list.add(SExp.mkBoolAsInt(st.isVirtual()));
         list.add(SExp.mkInt((int)st.getX()));
         list.add(SExp.mkInt((int)st.getY()));
         list.add(SExp.mkString(st.getCode().getSource()));

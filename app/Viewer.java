@@ -166,7 +166,7 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         {
             return null;
         }
-        return states.get(0);
+        return states.get(states.size()-1);
     }
     
     public List<State> statesAt(Pt w)
@@ -221,68 +221,93 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         int clicks = e.getClickCount();
         boolean shift = e.isShiftDown();
         boolean control = e.isControlDown();
+        boolean alt = e.isAltDown();
 
-        if(control && !shift)
+        if(button == 1)
         {
-            if(button == MouseEvent.BUTTON1)
-            {
-                app.makeState(w);
-            }
-        }
-        else if(clicks == 1)
-        {
-            if(button == MouseEvent.BUTTON1)
+            if(clicks == 1)
             {
                 State st = stateAt(w);
-                boolean wasSelected = app.isStateSelected(st);
-
-                if(!shift && (st == null || !wasSelected))
-                {
-                    app.deselectAllStates();
-                }
+                boolean onState = st != null;
+                boolean onSelectedState = onState && app.isStateSelected(st);
                 
-                if(st != null)
+                if(control && !shift)
                 {
-                    if(shift)
-                    {
-                        app.toggleSelectState(st);
-                    }
-                    else
-                    {
-                        app.selectState(st);
-                    }
-                
-                    for(State st2: app.getSelectedStates())
-                    {
-                        drags.add(new Drag(st2, e.getX(), e.getY(), 1/scale));
-                    }
+                    app.makeState(w);
                 }
                 else
                 {
-                    selectionBox1 = new Pt(w.getX(),w.getY());
-                    selectionBox2 = new Pt(w.getX(),w.getY());
-                    preselected = app.getSelectedStates();
-                    selectionBoxGoing = true;
-                    selectionBoxSubtract = control;
-                    processSelectionBox();
-                    drags.add(new Drag(selectionBox2, e.getX(), e.getY(), 1/scale));
+                    // Three exhaustive and mutually exclusive possibilities
+                    boolean normal   = !shift;
+                    boolean add      = shift && !control;
+                    boolean subtract = shift && control;                    
+                    
+                    if(onState)
+                    {
+                        // clicked on an existing state
 
-                }
+                        if(normal && !onSelectedState)
+                        {
+                            app.deselectAllStates();
+                        }
 
-                if(st != null && !wasSelected)
-                {
-                    app.editState(st);
+                        if(normal)
+                        {
+                            if(!onSelectedState)
+                            {
+                                app.deselectAllStates();
+                            }
+
+                            app.selectState(st);
+
+                            // begin dragging things
+                            for(State st2: app.getSelectedStates())
+                            {
+                                drags.add(new Drag(st2, e.getX(), e.getY(), 1/scale));
+                            }
+                        }
+                        else if(add)
+                        {
+                            app.selectState(st);
+                        }
+                        else
+                        {
+                            app.deselectState(st);
+                        }
+
+                        if(!subtract && onState)
+                        {
+                            app.editState(st, false);
+                        }
+                    }
+                    else 
+                    {
+                        // clicked in the middle of nowhere
+
+                        if(normal)
+                        {
+                            app.deselectAllStates();
+                        }
+                        
+                        selectionBox1 = new Pt(w.getX(),w.getY());
+                        selectionBox2 = new Pt(w.getX(),w.getY());
+                        preselected = app.getSelectedStates();
+                        selectionBoxGoing = true;
+                        selectionBoxSubtract = subtract;
+                        processSelectionBox();
+                        drags.add(new Drag(selectionBox2, e.getX(), e.getY(), 1/scale));
+                    }
                 }
             }
-            else if(button == MouseEvent.BUTTON2)
+            else if(clicks == 2)
             {
-                drags.add(new Drag(viewCenter, e.getX(), e.getY(), -1.0/scale));
+                State st = stateAt(w);
+                app.editState(st, st != null);
             }
         }
-        else if(clicks == 2)
+        else if(button == 2)
         {
-            State st = stateAt(w);
-            app.editState(st);
+            drags.add(new Drag(viewCenter, e.getX(), e.getY(), -1.0/scale));
         }
 
         repaint();
@@ -322,14 +347,30 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
     public void keyPressed(KeyEvent e)
     {
         int k = e.getKeyCode();
+        boolean shift = e.isShiftDown();
         boolean control = e.isControlDown();
         
-        if(k == KeyEvent.VK_DELETE && control)
+        if(control && k == KeyEvent.VK_DELETE)
         {
             Machine m = app.getMachine();
             if(m != null)
             {
                 app.removeStates(app.getSelectedStates());
+            }
+        }
+        else if(k == KeyEvent.VK_A && !shift && !control)
+        {
+            Machine m = app.getMachine();
+            if(m != null)
+            {
+                if(app.getSelectedStates().size() != m.getStates().size())
+                {
+                    app.selectAllStates();
+                }
+                else
+                {
+                    app.deselectAllStates();
+                }
             }
         }
     }

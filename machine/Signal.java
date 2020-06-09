@@ -7,6 +7,7 @@ public class Signal implements Named
     private SignalKind kind;
     private String description = "";
     private ExpressionCode code; // exists for all, only used for EXPRESSION signals
+    private boolean internal = false; // only relevant to STATEWISE and EXPRESSION signals (since INPUT signals are never internal, obviously)
 
     public Signal(String name, SignalKind kind, Machine m)
     {
@@ -34,11 +35,14 @@ public class Signal implements Named
 
         return e;
     }
-    
+
+    public boolean getInternal() { return internal; } // only for sw/expr
     public SignalKind getKind() { return kind; }
     public String getName() { return name; }
+    public boolean isInternal() { return internal && kind != SignalKind.INPUT; }
     public void setDescription(String s) { description = s; }
     public void setName(String s) { name = s; }
+    public void setInternal(boolean b) { internal = b; } // only for sw/expr
     
     public void setKind(SignalKind k)
     {
@@ -56,6 +60,7 @@ public class Signal implements Named
         content.put("kind", SExp.mkAtom(SignalKind.toAtom(kind)));
         content.put("description", SExp.mkString(description));
         content.put("code", SExp.mkString(code.getSource()));
+        content.put("internal", SExp.mkBoolAsInt(internal));
         return SExp.stringMapToExp(content);
     }
 
@@ -67,41 +72,29 @@ public class Signal implements Named
             throw UnpackError.badMap();
         }
 
-        SExp nameExp = content.get("name");
-        if(nameExp == null || nameExp.getKind() != SExpKind.STRING)
-        {
-            throw UnpackError.badField("name");
-        }
-        String name = nameExp.getString();
-
-        SExp kindExp = content.get("kind");
-        if(kindExp == null || kindExp.getKind() != SExpKind.ATOM)
-        {
-            throw UnpackError.badField("kind");
-        }
-        SignalKind kind = SignalKind.fromAtom(kindExp.getAtom());
+        String name = Unpack.getStringItem(content, "name", false, null);
+        String kindAtom = Unpack.getAtomItem(content, "kind", false, null);
+        SignalKind kind = SignalKind.fromAtom(kindAtom);
         if(kind == null)
         {
             throw UnpackError.badField("kind");
         }
 
-        SExp descriptionExp = content.get("description");
-        if(descriptionExp == null || descriptionExp.getKind() != SExpKind.STRING)
-        {
-            throw UnpackError.badField("description");
-        }
-        String description = descriptionExp.getString();
+        String description = Unpack.getStringItem(content, "description", false, null);
+        String code = Unpack.getStringItem(content, "code", false, null);
 
-        SExp codeExp = content.get("code");
-        if(codeExp == null || codeExp.getKind() != SExpKind.STRING)
-        {
-            throw UnpackError.badField("code");
-        }
-        String code = codeExp.getString();
+        // Optional parameters
+        boolean internal = Unpack.getBooleanItem(content, "internal", true, false);
 
         Signal s = new Signal(name, kind, m);
         s.setDescription(description);
         s.getCode().setSource(code);
+        s.setInternal(internal);
         return s;
+    }
+
+    public String toString()
+    {
+        return name;
     }
 }

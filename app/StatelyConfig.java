@@ -2,9 +2,9 @@ package app;
 import machine.*;
 public class StatelyConfig
 {
-    public int width = 1600;
-    public int height = 900;
-    public int x = 20;
-    public int y = 40;
-    public int machineEditorWidth = 400;
+    public int win_width = 1024;
+    public int win_height = 768;
+    public int win_x = 0;
+    public int win_y = 0;
+    public boolean win_maximize = true;
 }

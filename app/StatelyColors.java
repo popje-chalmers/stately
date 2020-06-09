@@ -32,6 +32,12 @@ public class StatelyColors
     public Color issue_error = Color.RED;
     public Color issue_other = Color.BLUE;
 
+    public Color signal_list_background = Color.BLACK;
+    public Color signal_selected = new Color(127,127,255);
+    public Color signal_not_selected = Color.WHITE;
+    public Color signal_bg = signal_list_background;
+    public Color signal_bg_error = new Color(127,0,0);
+
     public Color text_field_background = Color.BLACK;
     public Color text_field_foreground = Color.WHITE;
 

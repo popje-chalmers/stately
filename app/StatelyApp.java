@@ -23,7 +23,8 @@ public class StatelyApp extends JFrame implements ActionListener
     private Viewer viewer;
     private MachineEditor machineEditor;
     private SelectionManager<State> selectedStates = new SelectionManager<>();
-
+    private Set<Signal> erroneousSignals = new HashSet<>();
+    
     private Machine machine;
     private ArrayList<StatelyListener> listeners = new ArrayList<>();
 
@@ -40,8 +41,13 @@ public class StatelyApp extends JFrame implements ActionListener
     {
         loadConfig();
         
-        setSize(config.width, config.height);
-        setLocation(config.x, config.y);
+        setSize(config.win_width, config.win_height);
+        setLocation(config.win_x, config.win_y);
+        if(config.win_maximize)
+        {
+            setExtendedState(JFrame.MAXIMIZED_BOTH);
+        }
+        
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         Container c = getContentPane();
@@ -49,7 +55,7 @@ public class StatelyApp extends JFrame implements ActionListener
         c.setBackground(colors.background);
 
         machine = new Machine("MyFSM");
-        machine.analyze();
+        analyze();
         
         viewer = new Viewer(this);
         machineEditor = new MachineEditor(this);
@@ -57,7 +63,7 @@ public class StatelyApp extends JFrame implements ActionListener
         JSplitPane divide = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
                                            viewer, machineEditor);
         
-        divide.setDividerLocation(config.width - config.machineEditorWidth);
+        //divide.setDividerLocation(config.win_width - measures.machine_editor_width);
         divide.setResizeWeight(1.0f);
         c.add(divide, BorderLayout.CENTER);
 
@@ -65,12 +71,16 @@ public class StatelyApp extends JFrame implements ActionListener
 
         menuOpen = new JMenuItem("Open FSM...");
         menuOpen.addActionListener(this);
+        menuOpen.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed O"));
         menuSave = new JMenuItem("Save FSM...");
         menuSave.addActionListener(this);
+        menuSave.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed S"));
         menuSaveAs = new JMenuItem("Save FSM as...");
         menuSaveAs.addActionListener(this);
+        menuSaveAs.setAccelerator(KeyStroke.getKeyStroke("ctrl shift pressed S"));
         menuQuit = new JMenuItem("Quit");
         menuQuit.addActionListener(this);
+        menuQuit.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed Q"));
 
         menuTransform = new JMenuItem("Edit with external program");
         menuTransform.addActionListener(this);
@@ -149,7 +159,7 @@ public class StatelyApp extends JFrame implements ActionListener
     public MachineEditor getMachineEditor() { return machineEditor; }
 
     // Call this after non-cosmetic properties of the machine have changed.
-    public void machineModified(Object source)
+    public void reportMachineModification(Object source)
     {
         fixSelection();
         
@@ -158,7 +168,7 @@ public class StatelyApp extends JFrame implements ActionListener
             return;
         }
 
-        machine.analyze();
+        analyze();
 
         MachineEvent e = new MachineEvent(source);
         for(StatelyListener l: listeners)
@@ -173,7 +183,7 @@ public class StatelyApp extends JFrame implements ActionListener
     public void setMachine(Machine m)
     {
         machine = m;
-        machine.analyze();
+        analyze();
         selectedStates.clear();
         MachineEvent e = new MachineEvent(this, m);
         for(StatelyListener l: listeners)
@@ -181,7 +191,7 @@ public class StatelyApp extends JFrame implements ActionListener
             l.machineSwapped(e);
         }
         fixTitle();
-        machineModified(this);
+        reportMachineModification(this);
     }
 
 
@@ -194,13 +204,13 @@ public class StatelyApp extends JFrame implements ActionListener
     public void deselectAllStates()
     {
         selectedStates.clear();
-        selectionModified();
+        reportSelectionModification();
     }
 
     public void deselectState(State st)
     {
         selectedStates.deselect(st);
-        selectionModified();
+        reportSelectionModification();
     }
 
     public Set<State> getSelectedStates()
@@ -213,34 +223,49 @@ public class StatelyApp extends JFrame implements ActionListener
         return selectedStates.isSelected(st);
     }
 
+    public void selectAllStates()
+    {
+        if(machine != null)
+        {
+            setSelectedStates(machine.getStates());
+        }
+    }
+
     public void selectState(State st)
     {
         selectedStates.select(st);
-        selectionModified();
+        reportSelectionModification();
     }
 
-    public void setSelectedStates(Set<State> sel)
+    public void setSelectedStates(Collection<State> sel)
     {
         selectedStates.clear();
-        for(State st: sel)
-        {
-            selectedStates.select(st);
-        }
-        selectionModified();
+        selectedStates.select(sel);
+        reportSelectionModification();
     }
 
     public void toggleSelectState(State st)
     {
         selectedStates.toggle(st);
-        selectionModified();
+        reportSelectionModification();
     }
     
 
     // Misc services
-    
-    public void editState(State st)
+
+    public void editSignal(Signal s, boolean agro)
     {
-        machineEditor.goEditState(st);
+        machineEditor.editSignal(s, agro);
+    }
+    
+    public void editState(State st, boolean agro)
+    {
+        machineEditor.editState(st, agro);
+    }
+
+    public boolean isSignalErroneous(Signal s)
+    {
+        return erroneousSignals.contains(s);
     }
 
     public void makeState(Pt loc)
@@ -254,12 +279,71 @@ public class StatelyApp extends JFrame implements ActionListener
         st.setPosition(loc.getX(), loc.getY());
         machine.addState(st);
 
-        editState(st);
-        machineModified(this);
+        editState(st, true);
+        reportMachineModification(this);
        
         selectedStates.clear();
         selectedStates.select(st);
-        selectionModified();
+        reportSelectionModification();
+    }
+
+    public void makeSignals()
+    {
+        Machine m = getMachine();
+        if(m == null)
+        {
+            return;
+        }
+        
+        String input = JOptionPane.showInputDialog(this, "Enter signal names, separated by commas and optional spaces.\nA name may be prefixed with <, >, or = to set its kind, and . to make it internal.", "Create signals", JOptionPane.QUESTION_MESSAGE);
+
+        if(input == null)
+        {
+            return;
+        }
+
+        StringTokenizer st = new StringTokenizer(input, ",");
+        boolean addedSignals = false;
+        Signal mostRecent = null;
+        while(st.hasMoreTokens())
+        {
+            String token = st.nextToken();
+            SignalKind kind = SignalKind.STATEWISE; // most common
+            boolean internal = false;
+            
+            while(token.length() != 0)
+            {
+                char c = token.charAt(0);
+
+                if(c == '<' || c == '>' || c == '=')
+                {
+                    kind = SignalKind.fromSymbol("" + c);
+                }
+                else if(c == '.')
+                {
+                    internal = true;
+                }
+                else if(c != ' ')
+                {
+                    break;
+                }
+
+                token = token.substring(1);
+            }
+
+            String name = token.trim();
+            Signal signal = new Signal(name, kind, m);
+            signal.setInternal(internal);
+            m.addSignal(signal);
+            addedSignals = true;
+            mostRecent = signal;
+        }
+
+        if(addedSignals)
+        {
+            reportMachineModification(this);
+            editSignal(mostRecent, true);
+        }
     }
 
     public void removeStates(Set<State> states)
@@ -274,7 +358,7 @@ public class StatelyApp extends JFrame implements ActionListener
             machine.removeState(st);
         }
 
-        machineModified(this);
+        reportMachineModification(this);
     }
     
 
@@ -282,6 +366,16 @@ public class StatelyApp extends JFrame implements ActionListener
 
     // Private
 
+    private void analyze()
+    {
+        machine.analyze();
+        erroneousSignals.clear();
+        for(Issue i: machine.getIssues())
+        {
+            erroneousSignals.addAll(i.getSignals());
+        }
+    }
+    
     private void fixSelection()
     {
         Set<State> selected = selectedStates.getSelected();
@@ -295,15 +389,6 @@ public class StatelyApp extends JFrame implements ActionListener
             }
         }
     }
-
-    private void selectionModified()
-    {
-        fixSelection();
-        for(StatelyListener l: listeners)
-        {
-            l.selectionModified();
-        }
-    }
     
     private void loadConfig()
     {
@@ -311,9 +396,13 @@ public class StatelyApp extends JFrame implements ActionListener
         config = new StatelyConfig();
     }
 
-    private void saveConfig()
+    private void reportSelectionModification()
     {
-        // TODO
+        fixSelection();
+        for(StatelyListener l: listeners)
+        {
+            l.selectionModified();
+        }
     }
 
     // ActionListener
@@ -336,7 +425,7 @@ public class StatelyApp extends JFrame implements ActionListener
         }
         else if(source == menuQuit)
         {
-            System.exit(0);
+            quit();
         }
         else if(source == menuTransform)
         {
@@ -389,7 +478,7 @@ public class StatelyApp extends JFrame implements ActionListener
                 {
                     System.out.println(s.getName() + " " + s.getKind());
                 }
-                machineModified(this);
+                reportMachineModification(this);
             }
         }
         else if(source == menuDebugPrintMachine)
@@ -428,29 +517,18 @@ public class StatelyApp extends JFrame implements ActionListener
                     System.out.println(exp.toString());
                 }
                 System.out.println();
-
-                setMachine(new Machine(""));
-                Transformatron t = new Transformatron(machine);
-                for(SExp exp: dbg)
-                {
-                    t.interpret(exp);
-                }
-                machineModified(this);
             }
         }
     }
 
-    // Actions driven by 
+    // Actions driven by above
 
     private void help()
     {
         String message =
-            "ctrl-click: add state\n" +
-            "ctrl + Del: delete selected state(s)\n" +
-            "left-click: select one state\n" +
-            "shift + left-click: toggle to selection\n" +
-            "shift + left-drag: add rectangle to selection\n" +
-            "shift + ctrl + left-drag: subtract rectangle from selection\n" +
+            "A few controls (see controls.md for more):\n" +
+            "ctrl + left-click: add state\n" +
+            "ctrl + del: delete selected state(s)\n" +
             "middle-drag: pan view\n" +
             "scroll wheel: zoom";
 
@@ -546,8 +624,11 @@ public class StatelyApp extends JFrame implements ActionListener
     // Helper for "save" and "save as"
     private void saveFSMToFile(File f)
     {
+        machineEditor.save(); // save any unsaved edits
+        
         try
         {
+            
             if(f.getName().equals(""))
             {
                 throw new IllegalArgumentException("Bad file name");
@@ -571,6 +652,8 @@ public class StatelyApp extends JFrame implements ActionListener
     {
         File f = new File(TRANSFORM_TMP);
         boolean first = true;
+
+        machineEditor.save(); // save any unsaved edits
         
         try
         {
@@ -612,6 +695,15 @@ public class StatelyApp extends JFrame implements ActionListener
         return false;
     }
 
+    private void quit()
+    {
+        int res = JOptionPane.showConfirmDialog(this, "Are you sure you want to quit?", "Quit", JOptionPane.OK_CANCEL_OPTION);
+        if(res == JOptionPane.YES_OPTION)
+        {
+            System.exit(0);
+        }
+    }
+
     // Static methods
 
     private static Machine transform_in(File f) throws IOException
@@ -643,7 +735,7 @@ public class StatelyApp extends JFrame implements ActionListener
         out += "-- Cheatsheet:\n";
         out += "-- (name \"fsmname\")\n";
         out += "-- (translate <deltaX> <deltaY>)\n";
-        out += "-- (signal \"name\" <kind> \"description\"" + " \"expression code\")\n";
+        out += "-- (signal \"name\" <kind> <internal> \"description\"" + " \"expression code\")\n";
         out += "--   n.b. <kind> is in {input, expression, statewise}\n";
         out += "-- (state \"name\" \"description\" <isvirtual> <x> <y> \"state code\")\n";
         out += "\n";

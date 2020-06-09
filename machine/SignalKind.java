@@ -32,4 +32,34 @@ public enum SignalKind
             return null;
         }
     }
+
+    public static String toSymbol(SignalKind k)
+    {
+        switch(k)
+        {
+        case INPUT:
+            return "<";
+        case STATEWISE:
+            return ">";
+        case EXPRESSION:
+            return "=";
+        default:
+            throw Misc.impossible();
+        }
+    }
+
+    public static SignalKind fromSymbol(String s)
+    {
+        switch(s)
+        {
+        case "<":
+            return INPUT;
+        case ">":
+            return STATEWISE;
+        case "=":
+            return EXPRESSION;
+        default:
+            return null;
+        }
+    }
 }

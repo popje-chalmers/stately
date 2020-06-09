@@ -21,6 +21,7 @@ public class SExp
     public int getInt() { return intValue; }
     public String getString() { return stringValue; }
     public String toString() { return SExpPrinter.print(this); }
+    public boolean getBoolFromInt() { return intValue != 0; }
     
     public static SExp mkList(List<SExp> l)
     {
@@ -50,8 +51,13 @@ public class SExp
         return e;
     }
 
-    // Convenience stuff
+    public static SExp mkBoolAsInt(boolean b)
+    {
+        return mkInt(b ? 1 : 0);
+    }
 
+    // Convenience stuff
+    
     // Make a 2-element list
     public static SExp pair(SExp exp1, SExp exp2)
     {
@@ -60,7 +66,6 @@ public class SExp
         pair.add(exp2);
         return mkList(pair);
     }
-
     
     // Convert a map to a list of pairs
     public static SExp stringMapToExp(Map<String,SExp> map)
