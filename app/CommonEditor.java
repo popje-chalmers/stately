@@ -10,7 +10,7 @@ public abstract class CommonEditor<T> extends JPanel implements Editor<T>, State
 {
     protected StatelyApp app;
     protected T beingEdited = null;
-    private boolean unsavedChanges = false;
+    private boolean unappliedChanges = false;
     private boolean ignoreChanges = false;
 
     private JLabel compileStatusLabel;
@@ -35,7 +35,7 @@ public abstract class CommonEditor<T> extends JPanel implements Editor<T>, State
     protected abstract void indicateChanged();
     protected abstract void indicateUnchanged();
     protected abstract void loadStuff(T t);
-    protected abstract void saveStuff(T t);
+    protected abstract void applyStuff(T t);
 
     // Protected
     
@@ -46,18 +46,18 @@ public abstract class CommonEditor<T> extends JPanel implements Editor<T>, State
             return;
         }
 
-        if(!unsavedChanges)
+        if(!unappliedChanges)
         {
-            unsavedChanges = true;
+            unappliedChanges = true;
             indicateChanged();
         }
     }
 
     // Editor interface
     
-    public boolean hasUnsavedChanges()
+    public boolean hasUnappliedChanges()
     {
-        return unsavedChanges;
+        return unappliedChanges;
     }
 
     public void load(T t)
@@ -71,14 +71,14 @@ public abstract class CommonEditor<T> extends JPanel implements Editor<T>, State
         revalidate();
     }
 
-    public void save(T t)
+    public void apply(T t)
     {
         if(t == null)
         {
             return;
         }
 
-        saveStuff(t);
+        applyStuff(t);
         
         unchanged();
     }
@@ -201,7 +201,7 @@ public abstract class CommonEditor<T> extends JPanel implements Editor<T>, State
 
     private void unchanged()
     {
-        unsavedChanges = false;
+        unappliedChanges = false;
         indicateUnchanged();
     }
     

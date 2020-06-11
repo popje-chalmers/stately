@@ -13,7 +13,7 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
     private JTextArea descriptionArea;
     private JCheckBox virtualCheckBox;
     private CodeArea codeArea;
-    private JButton saveButton;
+    private JButton applyButton;
     private JButton makeInitialButton;
 
     private JLabel compileStatusLabel;
@@ -35,13 +35,13 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         descriptionArea = Helper.textArea(app);
         virtualCheckBox = Helper.checkBox(app, "Virtual state");
         codeArea = new CodeArea(app);
-        saveButton = Helper.button(app, "Save changes");
+        applyButton = Helper.button(app, "Apply changes");
         makeInitialButton = Helper.button(app, "Set as initial state");
         
         virtualCheckBox.addActionListener(this);
         descriptionArea.getDocument().addDocumentListener(this);
         codeArea.getTextArea().getDocument().addDocumentListener(this);
-        saveButton.addActionListener(this);
+        applyButton.addActionListener(this);
         makeInitialButton.addActionListener(this);
         
         JPanel namePanel = Helper.transparentPanel();
@@ -74,7 +74,7 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         c.weighty = 1;
         editorPanel.add(codeArea, c);
         c.weighty = 0;
-        editorPanel.add(saveButton, c);
+        editorPanel.add(applyButton, c);
     }
 
     protected Code getCode()
@@ -94,12 +94,12 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
 
     protected void indicateChanged()
     {
-        saveButton.setEnabled(true);
+        applyButton.setEnabled(true);
     }
 
     protected void indicateUnchanged()
     {
-        saveButton.setEnabled(false);
+        applyButton.setEnabled(false);
     }
 
     protected void loadStuff(State state)
@@ -129,10 +129,10 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         descriptionArea.setEnabled(valid);
         virtualCheckBox.setEnabled(valid);
         codeArea.getTextArea().setEnabled(valid);
-        saveButton.setEnabled(valid);
+        applyButton.setEnabled(valid);
     }
 
-    protected void saveStuff(State state)
+    protected void applyStuff(State state)
     {
         state.setDescription(descriptionArea.getText());
         state.setVirtual(virtualCheckBox.isSelected());
@@ -145,11 +145,11 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
     {
         Object source = e.getSource();
 
-        if(source == saveButton)
+        if(source == applyButton)
         {
             if(beingEdited != null)
             {
-                save(beingEdited);
+                apply(beingEdited);
                 app.reportMachineModification(this);
             }
         }
@@ -157,7 +157,7 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         {
             if(beingEdited != null)
             {
-                save(beingEdited);
+                apply(beingEdited);
                 rename();
                 app.reportMachineModification(this);
             }
@@ -168,7 +168,7 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         }
         else if(source == makeInitialButton)
         {
-            save(beingEdited);
+            apply(beingEdited);
             Machine m = app.getMachine();
             if(m != null)
             {

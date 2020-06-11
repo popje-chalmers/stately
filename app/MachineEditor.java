@@ -58,9 +58,9 @@ public class MachineEditor extends JPanel
         }
     }
 
-    public void save()
+    public void apply()
     {
-        sig.saveIfReasonable();
-        sec.saveIfReasonable();
+        sig.applyIfReasonable();
+        sec.applyIfReasonable();
     }
 }

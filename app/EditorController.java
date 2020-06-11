@@ -27,7 +27,7 @@ public abstract class EditorController<T> implements StatelyListener
             return;
         }
 
-        saveIfReasonable();
+        applyIfReasonable();
         load(t);
     }
 
@@ -36,11 +36,11 @@ public abstract class EditorController<T> implements StatelyListener
         return beingEdited;
     }
 
-    public void saveIfReasonable()
+    public void applyIfReasonable()
     {
-        if(beingEdited != null && stillExists(beingEdited) && editor.hasUnsavedChanges())
+        if(beingEdited != null && stillExists(beingEdited) && editor.hasUnappliedChanges())
         {
-            editor.save(beingEdited);
+            editor.apply(beingEdited);
             app.reportMachineModification(this);
         }
     }
@@ -64,7 +64,7 @@ public abstract class EditorController<T> implements StatelyListener
         
         if(stillExists(beingEdited))
         {
-            if(!editor.hasUnsavedChanges())
+            if(!editor.hasUnappliedChanges())
             {
                 load(beingEdited);
             }

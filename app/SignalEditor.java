@@ -18,7 +18,7 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
     private JComboBox<String> kindChooser;
     private JCheckBox internalCheckBox;
     private CodeArea codeArea;
-    private JButton saveButton;
+    private JButton applyButton;
 
     public SignalEditor(StatelyApp app)
     {
@@ -35,13 +35,13 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         kindChooser = new JComboBox<>(kindChoices);
         internalCheckBox = Helper.checkBox(app, "Internal? (no effect on inputs)");
         codeArea = new CodeArea(app);
-        saveButton = Helper.button(app, "Save changes");
+        applyButton = Helper.button(app, "Apply changes");
         
         kindChooser.addActionListener(this);
         internalCheckBox.addActionListener(this);
         descriptionArea.getDocument().addDocumentListener(this);
         codeArea.getTextArea().getDocument().addDocumentListener(this);
-        saveButton.addActionListener(this);
+        applyButton.addActionListener(this);
 
         JPanel namePanel = Helper.transparentPanel();
         namePanel.setLayout(new BorderLayout());
@@ -74,7 +74,7 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         c.weighty = 1;
         editorPanel.add(codeArea, c);
         c.weighty = 0;
-        editorPanel.add(saveButton, c);
+        editorPanel.add(applyButton, c);
     }
 
     protected Code getCode()
@@ -99,12 +99,12 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
 
     protected void indicateChanged()
     {
-        saveButton.setEnabled(true);
+        applyButton.setEnabled(true);
     }
 
     protected void indicateUnchanged()
     {
-        saveButton.setEnabled(false);
+        applyButton.setEnabled(false);
     }
 
     protected void loadStuff(Signal signal)
@@ -140,10 +140,10 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         kindChooser.setEnabled(valid);
         internalCheckBox.setEnabled(valid);
         codeArea.getTextArea().setEnabled(valid);
-        saveButton.setEnabled(valid);
+        applyButton.setEnabled(valid);
     }
 
-    protected void saveStuff(Signal signal)
+    protected void applyStuff(Signal signal)
     {
         signal.setDescription(descriptionArea.getText());
         if(codeArea.getTextArea().isEnabled())
@@ -160,11 +160,11 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
     {
         Object source = e.getSource();
 
-        if(source == saveButton)
+        if(source == applyButton)
         {
             if(beingEdited != null)
             {
-                save(beingEdited);
+                apply(beingEdited);
                 app.reportMachineModification(this);
             }
         }
@@ -172,7 +172,7 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         {
             if(beingEdited != null)
             {
-                save(beingEdited);
+                apply(beingEdited);
                 rename();
                 app.reportMachineModification(this);
             }
