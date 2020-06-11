@@ -479,6 +479,7 @@ public class StatelyApp extends JFrame implements ActionListener
         {
             if(machine != null)
             {
+                machineEditor.save(); // save any unsaved edits
                 System.out.println("\nMaking some signals...");
 
                 String[] inputs = new String[]{"mem_ack","alloc_ack","calculate_ack","door_is_open","window_is_open","user_is_home","keycode_entered"};
@@ -525,6 +526,7 @@ public class StatelyApp extends JFrame implements ActionListener
         {
             if(machine != null)
             {
+                machineEditor.save(); // save any unsaved edits
                 System.out.println();
                 System.out.println(machine.toSExp());
                 System.out.println();
@@ -534,6 +536,7 @@ public class StatelyApp extends JFrame implements ActionListener
         {
             if(machine != null)
             {
+                machineEditor.save(); // save any unsaved edits
                 if(machine.getStatus() == MachineStatus.HAPPY)
                 {
                     System.out.println();
@@ -550,6 +553,7 @@ public class StatelyApp extends JFrame implements ActionListener
         {
             if(machine != null)
             {
+                machineEditor.save(); // save any unsaved edits
                 java.util.List<SExp> dbg = Transformatron.dumpMachine(machine, null);
                 System.out.println();
                 for(SExp exp: dbg)

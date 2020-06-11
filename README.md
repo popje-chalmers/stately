@@ -31,7 +31,9 @@ To avoid reimplementing half of FL, signals are all "control signals", i.e. sing
 ## Making it go
 
 ### Compiling and running
-Run `make run`. Makefile to be improved.
+* Compile and run: make run
+* Only compile: make
+* Only run: java -jar Stately.jar
 
 ### Mouse and keybindings
 See controls.md.
@@ -46,7 +48,7 @@ See controls.md.
 - Debug > Print TL to terminal: this is what the machine looks like in the representation used by Transform > ...
 
 ### Editing things
-On the right side there are editors for signals and states. Changes to the signal/state being edited are saved by clicking "save changes", or automatically in various circumstances (for example when you try to edit a different signal/state).
+On the right side there are editors for signals and states. Changes to the signal/state being edited are effected by clicking "commit changes", or automatically in various circumstances (for example when you try to edit a different signal/state).
 
 ## More about signals
 There are three kinds of signals: input, expression, and statewise.
