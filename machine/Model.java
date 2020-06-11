@@ -5,6 +5,8 @@ public class Model
 {
     private List<ModelSignalComputation> signalComputations; // in computation order, only generated signals (STATEWISE and EXPRESSION)
     private Map<State,List<ModelTransition>> transitions;
+    private State initialState;
+    private Expression resetCondition;
 
     private Machine m;
     
@@ -71,6 +73,8 @@ public class Model
         {
             s += msc.toString() + "\n";
         }
+        s += "== reset ==\n";
+        s += "* -> " + initialState.getName() + " {" + resetCondition.toString() + "}\n";
         s += "== state transitions ==\n";
         for(Map.Entry<State,List<ModelTransition>> entry: transitions.entrySet())
         {
@@ -89,6 +93,8 @@ public class Model
             throw new IllegalArgumentException("Can't model a non-happy machine.");
         }
 
+        initialState = m.getInitialState();
+        resetCondition = new Expression(m.getResetSignal());
         signalComputations = new ArrayList<>();
         transitions = new HashMap<>();
         

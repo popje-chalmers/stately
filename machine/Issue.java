@@ -130,4 +130,36 @@ public class Issue
                          "name conflict(s)",
                          signals, states);
     }
+
+    public static Issue initialMissing()
+    {
+        return new Issue(IssueKind.INITIAL_MISSING,
+                         "no initial state",
+                         null, null);
+    }
+
+    public static Issue initialVirtual(State st)
+    {
+        List<State> states = new ArrayList<>();
+        states.add(st);
+        return new Issue(IssueKind.INITIAL_VIRTUAL,
+                         "initial state \"" + st.getName() + "\" is virtual",
+                         null, states);
+    }
+
+    public static Issue resetMissing()
+    {
+        return new Issue(IssueKind.RESET_MISSING,
+                         "missing special input signal \"reset\"",
+                         null, null);
+    }
+
+    public static Issue specialSignalWrongKind(Signal s, SignalKind kind)
+    {
+        List<Signal> signals = new ArrayList<>();
+        signals.add(s);
+        return new Issue(IssueKind.SPECIAL_SIGNAL_WRONG_KIND,
+                         "special signal \"" + s.getName() + "\" must be of kind: " + kind,
+                         signals, null);
+    }
 }

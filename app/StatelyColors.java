@@ -22,6 +22,7 @@ public class StatelyColors
     public Color state_cycle_error = new Color(200,0,0,127);
 
     public Color transition_arrow = state_color;
+    public Color initial_arrow = state_color;
 
     public Color selection_box_outline = Color.WHITE;
     public Color selection_box_fill = new Color(255,255,255,32);

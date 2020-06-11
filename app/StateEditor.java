@@ -14,6 +14,7 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
     private JCheckBox virtualCheckBox;
     private CodeArea codeArea;
     private JButton saveButton;
+    private JButton makeInitialButton;
 
     private JLabel compileStatusLabel;
     private JLabel compileErrorLabel;
@@ -35,11 +36,13 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         virtualCheckBox = Helper.checkBox(app, "Virtual state");
         codeArea = new CodeArea(app);
         saveButton = Helper.button(app, "Save changes");
+        makeInitialButton = Helper.button(app, "Set as initial state");
         
         virtualCheckBox.addActionListener(this);
         descriptionArea.getDocument().addDocumentListener(this);
         codeArea.getTextArea().getDocument().addDocumentListener(this);
         saveButton.addActionListener(this);
+        makeInitialButton.addActionListener(this);
         
         JPanel namePanel = Helper.transparentPanel();
         namePanel.setLayout(new BorderLayout());
@@ -66,6 +69,7 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         editorPanel.add(descriptionScroll, c);
         editorPanel.add(Helper.makeLLL(app, "Properties:"), c);
         editorPanel.add(virtualCheckBox, c);
+        editorPanel.add(makeInitialButton, c);
         editorPanel.add(Helper.makeLLL(app, "Code:"), c);
         c.weighty = 1;
         editorPanel.add(codeArea, c);
@@ -161,6 +165,16 @@ public class StateEditor extends CommonEditor<State> implements ActionListener, 
         else if(source == virtualCheckBox)
         {
             changed();
+        }
+        else if(source == makeInitialButton)
+        {
+            save(beingEdited);
+            Machine m = app.getMachine();
+            if(m != null)
+            {
+                m.setInitialState(beingEdited);
+            }
+            app.reportMachineModification(this);
         }
     }
 

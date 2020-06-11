@@ -62,6 +62,24 @@ public class Unpack
         return exp.getInt();
     }
 
+    // Same as getAtomItem, but for SExpKind.LIST.
+    public static List<SExp> getListItem(Map<String,SExp> map, String key, boolean optional, List<SExp> optionalDefault)
+    {
+        SExp exp = getSExpItem(map,key,optional,null);
+
+        if(exp == null)
+        {
+            return optionalDefault;
+        }
+
+        if(exp.getKind() != SExpKind.LIST)
+        {
+            throw UnpackError.badField(key);
+        }
+
+        return exp.getList();
+    }
+
     // Similar to getAtomItem, but looks up any kind of SExp (and returns it rather than extracting a specific value from it).
     public static SExp getSExpItem(Map<String,SExp> map, String key, boolean optional, SExp optionalDefault)
     {

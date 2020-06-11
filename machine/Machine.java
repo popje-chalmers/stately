@@ -18,6 +18,7 @@ public class Machine implements Named
     private String name;
     private List<Signal> signals = new ArrayList<>();
     private List<State> states = new ArrayList<>();
+    private State initialState = null;
     private MachineStatus status = MachineStatus.UNCOMPILED;
 
     private List<Issue> issues = new ArrayList<>();
@@ -37,11 +38,14 @@ public class Machine implements Named
     public Set<State> accessCoarseGraph(State st) { return coarseGraph.get(st); }
     
     public DependencyGraph getDependencyGraph() { return dgraph; }
+    public State getInitialState() { return initialState; }
     public List<Issue> getIssues() { return new ArrayList<>(issues); }
     public String getName() { return name; }
+    public Signal getResetSignal() { return findSignal("reset"); }
     public List<Signal> getSignals() { return new ArrayList<>(signals); }
     public List<State> getStates() { return new ArrayList<>(states); }
     public MachineStatus getStatus() { return status; }
+    public void setInitialState(State st) { initialState = st; }
     public void setName(String n) { name = n; }
     
     public void addSignal(Signal s)
@@ -52,6 +56,10 @@ public class Machine implements Named
 
     public void addState(State s)
     {
+        if(initialState == null)
+        {
+            initialState = s;
+        }
         states.add(s);
         Collections.sort(states, new NameComparator<State>());
     }
@@ -140,8 +148,10 @@ public class Machine implements Named
             return;
         }
 
-        // Phase 1: check for type errors and uncompiled things
+        // Phase 1: check for initial state, type errors and uncompiled things
         List<Issue> compilationIssues = new ArrayList<Issue>();
+        compilationIssues.addAll(CheckInitialState.checkInitialState(this));
+        compilationIssues.addAll(CheckResetSignal.checkResetSignal(this));
         compilationIssues.addAll(CheckTypes.checkTypes(this));
         compilationIssues.addAll(CheckUncompiled.checkUncompiled(this));
         
@@ -290,6 +300,11 @@ public class Machine implements Named
             stateSExps.add(st.toSExp());
         }
         content.put("states", SExp.mkList(stateSExps));
+
+        if(initialState != null)
+        {
+            content.put("initial", SExp.mkString(initialState.getName()));
+        }
         
         return SExp.stringMapToExp(content);
     }
@@ -302,33 +317,29 @@ public class Machine implements Named
             throw UnpackError.badMap();
         }
 
-        SExp nameExp = content.get("name");
-        if(nameExp == null || nameExp.getKind() != SExpKind.STRING)
-        {
-            throw UnpackError.badField("name");
-        }
-        String name = nameExp.getString();
-
+        String name = Unpack.getStringItem(content, "name", false, null);
         Machine m = new Machine(name);
-        
-        SExp signalsExp = content.get("signals");
-        if(signalsExp == null || signalsExp.getKind() != SExpKind.LIST)
-        {
-            throw UnpackError.badField("signals");
-        }
-        for(SExp signalExp: signalsExp.getList())
+
+        List<SExp> signalExps = Unpack.getListItem(content, "signals", false, null);
+        for(SExp signalExp: signalExps)
         {
             m.addSignal(Signal.fromSExp(signalExp, m));
         }
 
-        SExp statesExp = content.get("states");
-        if(statesExp == null || statesExp.getKind() != SExpKind.LIST)
-        {
-            throw UnpackError.badField("states");
-        }
-        for(SExp stateExp: statesExp.getList())
+        List<SExp> stateExps = Unpack.getListItem(content, "states", false, null);
+        for(SExp stateExp: stateExps)
         {
             m.addState(State.fromSExp(stateExp, m));
+        }
+
+        String initialStateName = Unpack.getStringItem(content, "initial", true, null);
+        if(initialStateName != null)
+        {
+            State st = m.findState(initialStateName);
+            if(st != null)
+            {
+                m.setInitialState(st);
+            }
         }
         
         return m;

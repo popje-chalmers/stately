@@ -14,6 +14,8 @@ public class StatelyApp extends JFrame implements ActionListener
     public static final String EXTENSION = "fsm";
     public static final String TRANSFORM_TMP = "/tmp/stately_tmp";
     public static final FileNameExtensionFilter FILE_EXTENSION_FILTER = new FileNameExtensionFilter("FSM files", EXTENSION);
+    public static final double STATE_CREATE_DX = 80;
+    public static final double STATE_CREATE_DY = 0;
     
     public StatelyConfig config;
     public StatelyColors colors = new StatelyColors();
@@ -55,6 +57,8 @@ public class StatelyApp extends JFrame implements ActionListener
         c.setBackground(colors.background);
 
         machine = new Machine("MyFSM");
+        machine.addState(new State("foo", machine));
+        machine.addSignal(new Signal("reset", SignalKind.INPUT, machine));
         analyze();
         
         viewer = new Viewer(this);
@@ -270,27 +274,65 @@ public class StatelyApp extends JFrame implements ActionListener
 
     public void makeState(Pt loc)
     {
-        String name = JOptionPane.showInputDialog("Name?");
-        if(name == null)
+        double x = loc.getX();
+        double y = loc.getY();
+        
+        if(machine == null)
         {
             return;
         }
-        State st = new State(name, machine);
-        st.setPosition(loc.getX(), loc.getY());
-        machine.addState(st);
+        
+        String input = JOptionPane.showInputDialog(this, "Enter state name(s), separated by commas and optional spaces.\nA name may be prefixed with . to make it virtual.", "Create states", JOptionPane.QUESTION_MESSAGE);
 
-        editState(st, true);
-        reportMachineModification(this);
-       
-        selectedStates.clear();
-        selectedStates.select(st);
-        reportSelectionModification();
+        if(input == null)
+        {
+            return;
+        }
+
+        StringTokenizer st = new StringTokenizer(input, ",");
+        ArrayList<State> added = new ArrayList<>();
+        while(st.hasMoreTokens())
+        {
+            String token = st.nextToken();
+            boolean virtual = false;
+            
+            while(token.length() != 0)
+            {
+                char c = token.charAt(0);
+
+                if(c == '.')
+                {
+                    virtual = true;
+                }
+                else if(c != ' ')
+                {
+                    break;
+                }
+
+                token = token.substring(1);
+            }
+
+            String name = token.trim();
+            State state = new State(name, machine);
+            state.setVirtual(virtual);
+            state.setPosition(x,y);
+            x += STATE_CREATE_DX;
+            y += STATE_CREATE_DY;
+            machine.addState(state);
+            added.add(state);
+        }
+
+        if(!added.isEmpty())
+        {
+            reportMachineModification(this);
+            editState(added.get(added.size()-1), true);
+            setSelectedStates(added);
+        }
     }
 
     public void makeSignals()
     {
-        Machine m = getMachine();
-        if(m == null)
+        if(machine == null)
         {
             return;
         }
@@ -303,8 +345,7 @@ public class StatelyApp extends JFrame implements ActionListener
         }
 
         StringTokenizer st = new StringTokenizer(input, ",");
-        boolean addedSignals = false;
-        Signal mostRecent = null;
+        ArrayList<Signal> added = new ArrayList<>();
         while(st.hasMoreTokens())
         {
             String token = st.nextToken();
@@ -332,17 +373,16 @@ public class StatelyApp extends JFrame implements ActionListener
             }
 
             String name = token.trim();
-            Signal signal = new Signal(name, kind, m);
+            Signal signal = new Signal(name, kind, machine);
             signal.setInternal(internal);
-            m.addSignal(signal);
-            addedSignals = true;
-            mostRecent = signal;
+            machine.addSignal(signal);
+            added.add(signal);
         }
 
-        if(addedSignals)
+        if(!added.isEmpty())
         {
             reportMachineModification(this);
-            editSignal(mostRecent, true);
+            editSignal(added.get(added.size()-1), true);
         }
     }
 

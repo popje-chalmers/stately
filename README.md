@@ -26,11 +26,7 @@ To avoid reimplementing half of FL, signals are all "control signals", i.e. sing
 
 ## Some "features" you might want to be aware of before starting
 1. It's written in java so you need openjdk (for example "openjdk-11-jdk" on ubuntu).
-2. When you save your FSM, it writes directly to the destination file. If it were to crash while doing this, your save file would be toast (i.e., the old save file would be gone but the new one would be incomplete). This will hopefully be fixed soon.
-3. The usual hotkey bindings (ctrl-s etc) are not yet implemented, so make sure to save using the menu.
-4. It doesn't ask for confirmation when you try to quit/close the window.
-5. It's a bit finicky about which state is currently being edited.
-6. It's a bit finicky in general.
+2. It's a bit finicky in general.
 
 ## Making it go
 
@@ -38,20 +34,7 @@ To avoid reimplementing half of FL, signals are all "control signals", i.e. sing
 Run `make run`. Makefile to be improved.
 
 ### Mouse and keybindings
-#### Doing things
-- ctrl + left-click: make a new state
-- ctrl + del: delete a state
-- double click: edit a state (in the "State editor" tab)
-### Selecting
-- left-click: select a single state, and *possibly* edit it (todo: make more consistent)
-- shift + left-click: toggle whether a single state is selected
-- left-drag on a selected state: move all selected states
-- left-drag: select a rectangular region
-- shift + left-drag: add a rectangular region to selection
-- ctrl + shift + left-drag: remove a rectangular region from selection
-#### Changing the view
-- mouse wheel: zoom
-- middle-drag: slide view around
+See controls.md.
 
 ### Menu options
 - Help > Help: shows some keybindings
@@ -62,27 +45,18 @@ Run `make run`. Makefile to be improved.
 - Debug > Print model to terminal: this is what the simmered-down model looks like; see the "Model" section
 - Debug > Print TL to terminal: this is what the machine looks like in the representation used by Transform > ...
 
-### Editing states
-When a state is being edited, its information is visible in the "State editor" tab on the right side of the window.
-
-There you can edit its description, change whether or not it's marked as virtual, and edit its code.
-Those properties are saved via "Save changes".
-They're automatically saved when you try to edit another state, but it is suggested to save them manually since there are a few sneaky bugs where other machine-changing actions can cause the state's information to be reloaded without an automatic save (wiping out your edits).
-
-You can also rename the edited state, which takes effect when you click "Rename".
-In the future renaming will update all references to the state, but right now it does not.
-
-### Editing signals
-The signal editor hasn't been implemented yet, so the only way to edit the signals is via `Transform > Edit with external program`.
-More on that later.
+### Editing things
+On the right side there are editors for signals and states. Changes to the signal/state being edited are saved by clicking "save changes", or automatically in various circumstances (for example when you try to edit a different signal/state).
 
 ## More about signals
 There are three kinds of signals: input, expression, and statewise.
-1. Input signals are exactly what they sound like; the machine cannot change them.
-2. Expression signals are the typical internal/output signals one uses in FL: the signal's value is always equal to some expression (which may or may not depend on the current state).
+1. Input signals are exactly what they sound like; the machine cannot change them. They are denoted symbolically with a "<".
+2. Expression signals are the typical internal/output signals one uses in FL: the signal's value is always equal to some expression (which may or may not depend on the current state). They are denoted by "=".
 States cannot override the values of expression-signals.
 3. Statewise signals are a new kind: a statewise signal is controlled by code in each state, defaulting to 0 unless otherwise specified by the current state.
-This is the preferred way of implementing state-dependent signals, for the reasons described in the Ideas section.
+This is the preferred way of implementing state-dependent signals, for the reasons described in the Ideas section. They are denoted by ">".
+
+Statewise and expression signals can be marked as "internal", which means that that they won't become outputs in the eventually generated FL code. Marking input signals as internal has no effect.
 
 ## (Boolean) expressions
 Expressions are composed of atomic values (0, 1, or a signal name---recall that signals represent single bits) and operator applications (lisp-ishly written `(f x y z ...)`).
@@ -184,12 +158,10 @@ The save file format was designed to be verbose and relatively stable, which unf
 So instead, Stately offers an option `Transform > Edit with external program` which dumps the machine to a file in a convenient-to-edit (but prone to changing) form---namely a series of commands---and then upon confirmation reads it back in.
 The file's structure is explained in comments at the beginning of the file.
 
-As of now, it is the only way to add/edit/remove signals (aside from the debugging option that creates a pile of them).
-
 One of the main uses of this feature is for duplicating parts of the machine; one can copy and paste the relevant state declarations (making sure to change their names), and offset their positions by prepending a `translate` command.
 
 ## The "model"
 
 In preparation for FL output, Stately can flatten the machine into a simpler model, which has the following characteristics:
-- Output signals are turned into single expressions (and conveniently in dependency order).
+- Non-input signals are turned into single expressions (and conveniently in dependency order).
 - State transitions are extracted and given in the form `from -> to {condition}`. Note: virtual intermediates show up with arrows between `from` and `to`; this will be great for visualization.

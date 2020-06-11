@@ -3,6 +3,7 @@ import java.util.*;
 
 public class Transformatron
 {
+    public static final String CMD_INITIAL = "initial";
     public static final String CMD_NAME = "name";
     public static final String CMD_SIGNAL = "signal";
     public static final String CMD_STATE = "state";
@@ -38,26 +39,41 @@ public class Transformatron
 
         String cmd = cmdExp.getAtom();
 
-        if(cmd.equals(CMD_NAME))
+        switch(cmd)
         {
+        case CMD_INITIAL:
+            interpretInitial(exp, list);
+        case CMD_NAME:
             interpretName(exp, list);
-        }
-        else if(cmd.equals(CMD_SIGNAL))
-        {
+            break;
+        case CMD_SIGNAL:
             interpretSignal(exp, list);
-        }
-        else if(cmd.equals(CMD_STATE))
-        {
+            break;
+        case CMD_STATE:
             interpretState(exp, list);
-        }
-        else if(cmd.equals(CMD_TRANSLATE))
-        {
+            break;
+        case CMD_TRANSLATE:
             interpretTranslate(exp, list);
+            break;
+        default:
+            throw TransformatronError.bad(exp);
         }
-        else
+    }
+
+    private void interpretInitial(SExp exp, List<SExp> args)
+    {
+        if(args.size() != 1)
         {
             throw TransformatronError.bad(exp);
         }
+
+        String name = gimme(args, 0, SExpKind.STRING).getString();
+        State st = m.findState(name);
+        if(st == null)
+        {
+            throw TransformatronError.bad(exp);
+        }
+        m.setInitialState(st);
     }
 
     private void interpretName(SExp exp, List<SExp> args)
@@ -176,13 +192,28 @@ public class Transformatron
         {
             dumpState(st, out);
         }
+
+        dumpInitial(m.getInitialState(), out);
         
         return out;
     }
 
+    private static void dumpInitial(State st, List<SExp> out)
+    {
+        if(st == null)
+        {
+            return;
+        }
+
+        List<SExp> list = new ArrayList<>();
+        list.add(SExp.mkAtom(CMD_INITIAL));
+        list.add(SExp.mkString(st.getName()));
+        out.add(SExp.mkList(list));
+    }
+
     private static void dumpMachineProperties(Machine m, List<SExp> out)
     {
-        List<SExp> list = new ArrayList<SExp>();
+        List<SExp> list = new ArrayList<>();
         list.add(SExp.mkAtom(CMD_NAME));
         list.add(SExp.mkString(m.getName()));
         out.add(SExp.mkList(list));
@@ -190,7 +221,7 @@ public class Transformatron
 
     private static void dumpSignal(Signal s, List<SExp> out)
     {
-        List<SExp> list = new ArrayList<SExp>();
+        List<SExp> list = new ArrayList<>();
         list.add(SExp.mkAtom(CMD_SIGNAL));
         list.add(SExp.mkString(s.getName()));
         list.add(SExp.mkAtom(SignalKind.toAtom(s.getKind())));
@@ -202,7 +233,7 @@ public class Transformatron
 
     private static void dumpState(State st, List<SExp> out)
     {
-        List<SExp> list = new ArrayList<SExp>();
+        List<SExp> list = new ArrayList<>();
         list.add(SExp.mkAtom(CMD_STATE));
         list.add(SExp.mkString(st.getName()));
         list.add(SExp.mkString(st.getDescription()));

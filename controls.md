@@ -9,7 +9,7 @@
 ##State diagram
 ###Mouse
 * ctrl+LMB(press): make state
-* ctrl+alt+LMB(press): make signals
+* alt+LMB(press): make signals
 * LMB(press): select a state
 * LMB(drag): select a rectangle
 * shift+LMB(drag): add state or rectangle to selection

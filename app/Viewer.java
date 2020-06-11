@@ -24,8 +24,12 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
     public static final double STATE_DOT_ANGLE = -0.25 * Math.PI;
     public static final double STATE_DOT_ANGLE_STEP = 10 * Math.PI / 180;
     public static final double TRANSITION_OFFSET = STATE_RADIUS + 4;
-    public static final double TRANSITION_ARROW_WIDTH = 8;
-    public static final double TRANSITION_ARROW_LENGTH = 12;
+    public static final double TRANSITION_ARROWHEAD_WIDTH = 6;
+    public static final double TRANSITION_ARROWHEAD_LENGTH = 8;
+    public static final double INITIAL_ARROWHEAD_WIDTH = 6;
+    public static final double INITIAL_ARROWHEAD_LENGTH = 8;
+    public static final double INITIAL_ARROW_LENGTH = 24;
+    public static final double INITIAL_ARROW_OFFSET = 4;
     
     public static final int STATE_CLICK_RADIUS = STATE_RADIUS;
     public static final int SELECTION_RING_RADIUS = 28;
@@ -227,75 +231,82 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         {
             if(clicks == 1)
             {
-                State st = stateAt(w);
-                boolean onState = st != null;
-                boolean onSelectedState = onState && app.isStateSelected(st);
-                
-                if(control && !shift)
+                if(alt)
                 {
-                    app.makeState(w);
+                    app.makeSignals();
                 }
                 else
                 {
-                    // Three exhaustive and mutually exclusive possibilities
-                    boolean normal   = !shift;
-                    boolean add      = shift && !control;
-                    boolean subtract = shift && control;                    
-                    
-                    if(onState)
+                    State st = stateAt(w);
+                    boolean onState = st != null;
+                    boolean onSelectedState = onState && app.isStateSelected(st);
+
+                    if(control && !shift)
                     {
-                        // clicked on an existing state
+                        app.makeState(w);
+                    }
+                    else
+                    {
+                        // Three exhaustive and mutually exclusive possibilities
+                        boolean normal   = !shift;
+                        boolean add      = shift && !control;
+                        boolean subtract = shift && control;
 
-                        if(normal && !onSelectedState)
+                        if(onState)
                         {
-                            app.deselectAllStates();
-                        }
+                            // clicked on an existing state
 
-                        if(normal)
-                        {
-                            if(!onSelectedState)
+                            if(normal && !onSelectedState)
                             {
                                 app.deselectAllStates();
                             }
 
-                            app.selectState(st);
-
-                            // begin dragging things
-                            for(State st2: app.getSelectedStates())
+                            if(normal)
                             {
-                                drags.add(new Drag(st2, e.getX(), e.getY(), 1/scale));
+                                if(!onSelectedState)
+                                {
+                                    app.deselectAllStates();
+                                }
+
+                                app.selectState(st);
+
+                                // begin dragging things
+                                for(State st2: app.getSelectedStates())
+                                {
+                                    drags.add(new Drag(st2, e.getX(), e.getY(), 1/scale));
+                                }
+                            }
+                            else if(add)
+                            {
+                                app.selectState(st);
+                            }
+                            else // subtract
+                            {
+                                app.deselectState(st);
+                            }
+
+                            if(!subtract && onState)
+                            {
+                                app.editState(st, false);
                             }
                         }
-                        else if(add)
+                        else 
                         {
-                            app.selectState(st);
-                        }
-                        else
-                        {
-                            app.deselectState(st);
-                        }
+                            // clicked in the middle of nowhere
 
-                        if(!subtract && onState)
-                        {
-                            app.editState(st, false);
-                        }
-                    }
-                    else 
-                    {
-                        // clicked in the middle of nowhere
+                            if(normal)
+                            {
+                                app.deselectAllStates();
+                            }
 
-                        if(normal)
-                        {
-                            app.deselectAllStates();
+                            selectionBox1 = new Pt(w.getX(),w.getY());
+                            selectionBox2 = new Pt(w.getX(),w.getY());
+                            preselected = app.getSelectedStates();
+                            selectionBoxGoing = true;
+                            selectionBoxSubtract = subtract;
+                            processSelectionBox();
+                            drags.add(new Drag(selectionBox2, e.getX(), e.getY(), 1/scale));
                         }
-                        
-                        selectionBox1 = new Pt(w.getX(),w.getY());
-                        selectionBox2 = new Pt(w.getX(),w.getY());
-                        preselected = app.getSelectedStates();
-                        selectionBoxGoing = true;
-                        selectionBoxSubtract = subtract;
-                        processSelectionBox();
-                        drags.add(new Drag(selectionBox2, e.getX(), e.getY(), 1/scale));
                     }
                 }
             }
@@ -435,10 +446,11 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
                 }
             }
         }
-        
+
+        State initial = m.getInitialState();
         for(State st: m.getStates())
         {
-            drawState(g,st);
+            drawState(g,st, st == initial);
         }
         
         if(selectionBoxGoing)
@@ -469,7 +481,7 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         }
     }
 
-    public void drawState(Graphics g, State st)
+    public void drawState(Graphics g, State st, boolean isInitial)
     {
         int x = (int)st.getX();
         int y = (int)st.getY();
@@ -503,6 +515,14 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
             fillStateDot(g, x, y, angle);
             angle += STATE_DOT_ANGLE_STEP;
         }
+
+        if(isInitial)
+        {
+            g.setColor(app.colors.initial_arrow);
+            Pt to = new Pt(st.getX(), st.getY() - STATE_RADIUS - INITIAL_ARROW_OFFSET);
+            Pt from = new Pt(to.getX(), to.getY() - INITIAL_ARROW_LENGTH);
+            drawArrow(g, from, to, 0, 0, INITIAL_ARROWHEAD_WIDTH, INITIAL_ARROWHEAD_LENGTH);
+        }
     }
 
     public void fillStateDot(Graphics g, int sx, int sy, double angle)
@@ -519,7 +539,7 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         Pt toPt = new Pt(to.getX(), to.getY());
 
         g.setColor(app.colors.transition_arrow);
-        drawArrow(g, fromPt, toPt, TRANSITION_OFFSET, TRANSITION_OFFSET, TRANSITION_ARROW_WIDTH, TRANSITION_ARROW_LENGTH);
+        drawArrow(g, fromPt, toPt, TRANSITION_OFFSET, TRANSITION_OFFSET, TRANSITION_ARROWHEAD_WIDTH, TRANSITION_ARROWHEAD_LENGTH);
     }
 
     public void drawStateCycle(Graphics g, List<State> cycle)
