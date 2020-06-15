@@ -33,9 +33,21 @@ public class Environment
         return v;
     }
 
+    public boolean hasValueForSignal(Signal s)
+    {
+        return values.get(s) != null;
+    }
+
     public void setPath(List<State> path)
     {
-        this.path = new ArrayList<>(path);
+        if(path == null)
+        {
+            this.path = null;
+        }
+        else
+        {
+            this.path = new ArrayList<>(path);
+        }
     }
 
     public void setValue(Signal s, Value v)

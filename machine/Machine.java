@@ -23,6 +23,7 @@ public class Machine implements Named
 
     private List<Issue> issues = new ArrayList<>();
     private Map<State, Set<State>> coarseGraph = new HashMap<State, Set<State>>(); // Valid (though incomplete) even when some things aren't compiled.
+    private Model model; // Null unless HAPPY
     
     // Only valid when status > UNCOMPILED
     private DependencyGraph dgraph;
@@ -40,6 +41,7 @@ public class Machine implements Named
     public DependencyGraph getDependencyGraph() { return dgraph; }
     public State getInitialState() { return initialState; }
     public List<Issue> getIssues() { return new ArrayList<>(issues); }
+    public Model getModel() { return model; }
     public String getName() { return name; }
     public Signal getResetSignal() { return findSignal("reset"); }
     public List<Signal> getSignals() { return new ArrayList<>(signals); }
@@ -128,6 +130,7 @@ public class Machine implements Named
         issues.clear();
         coarseGraph.clear();
         dgraph = null;
+        model = null;
 
         compileAll();
         
@@ -201,6 +204,7 @@ public class Machine implements Named
         }
         
         status = MachineStatus.HAPPY;
+        model = new Model(this);
         return;
     }
 

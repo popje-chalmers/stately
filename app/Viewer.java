@@ -2,40 +2,56 @@ package app;
 import machine.*;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.Font;
-import java.awt.FontMetrics;
+import java.awt.Stroke;
 import java.awt.event.*;
 import java.util.*;
 import javax.swing.*;
 
 
-public class Viewer extends JPanel implements StatelyListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, FocusListener
+public class Viewer extends JPanel implements SimulationListener, StatelyListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, FocusListener
 {
+    // General
     public static final int ORIGIN_RADIUS = 10;
+
+    // States and transitions
     public static final int STATE_RADIUS = 25;
-    public static final int STATE_DOT_RADIUS = 7;
-    public static final int STATE_DOT_FROM_STATE = STATE_RADIUS - 1;
-    public static final int CYCLE_RING_RADIUS = 30;
-    public static final double CYCLE_OFFSET = 32;
-    public static final float CYCLE_STROKE_WIDTH = 3;
+    public static final int STATE_MAX_CHARS_PER_LINE = 8;
+    public static final Font STATE_NAME_FONT = new Font("Sans", Font.BOLD, 10);
+    public static final double TRANSITION_ARROWHEAD_LENGTH = 8;
+    public static final double TRANSITION_ARROWHEAD_WIDTH = 6;
+    public static final double TRANSITION_OFFSET = STATE_RADIUS + 4;
+    
+    // Per-state errors
     public static final double STATE_DOT_ANGLE = -0.25 * Math.PI;
     public static final double STATE_DOT_ANGLE_STEP = 10 * Math.PI / 180;
-    public static final double TRANSITION_OFFSET = STATE_RADIUS + 4;
-    public static final double TRANSITION_ARROWHEAD_WIDTH = 6;
-    public static final double TRANSITION_ARROWHEAD_LENGTH = 8;
-    public static final double INITIAL_ARROWHEAD_WIDTH = 6;
+    public static final int STATE_DOT_FROM_STATE = STATE_RADIUS - 1;
+    public static final int STATE_DOT_RADIUS = 7;
+    
+    // Initial state indicator
     public static final double INITIAL_ARROWHEAD_LENGTH = 8;
+    public static final double INITIAL_ARROWHEAD_WIDTH = 6;
     public static final double INITIAL_ARROW_LENGTH = 24;
     public static final double INITIAL_ARROW_OFFSET = 4;
-    
-    public static final int STATE_CLICK_RADIUS = STATE_RADIUS;
-    public static final int SELECTION_RING_RADIUS = 28;
-    public static final int STATE_MAX_CHARS_PER_LINE = 8;
 
-    public static final Font STATE_NAME_FONT = new Font("Sans", Font.BOLD, 10);
+    // Cycle errors
+    public static final float CYCLE_STROKE_WIDTH = 3;
+    public static final int CYCLE_RING_RADIUS = 30;
+    public static final double CYCLE_OFFSET = 32;
+    
+    // Selection
+    public static final int SELECTION_RING_RADIUS = 28;
+    public static final int STATE_CLICK_RADIUS = STATE_RADIUS;
+
+    // Simulator
+    public static final int SIM_STATE_RING_RADIUS = STATE_RADIUS + 5;
+    public static final float SIM_STROKE_WIDTH = 2;
+    
+    // Focus indicator
 
     public static final boolean SHOW_FOCUS = false;
     public static final int FOCUS_INSET = 0;
@@ -67,6 +83,7 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
     {
         this.app = app;
         app.addStatelyListener(this);
+        app.getSimulator().addSimulationListener(this);
         setBackground(app.colors.viewer_background);
         addMouseListener(this);
         addMouseMotionListener(this);
@@ -187,6 +204,13 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         }
 
         return states;
+    }
+
+    // SimulationListener
+
+    public void simulationUpdated()
+    {
+        repaint();
     }
     
     // StatelyListener
@@ -320,6 +344,11 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         {
             drags.add(new Drag(viewCenter, e.getX(), e.getY(), -1.0/scale));
         }
+        else if(button == 3)
+        {
+            State st = stateAt(w);
+            app.gotoState(st);
+        }
 
         repaint();
     }
@@ -415,16 +444,12 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         g2d.translate(getWidth()/2, getHeight()/2);
         g2d.scale(scale, scale);
         g2d.translate(-viewCenter.getX(), -viewCenter.getY());
-
+        Stroke regularStroke = g2d.getStroke();
         
         g.setColor(Color.WHITE);
         g.drawLine(-ORIGIN_RADIUS,0,ORIGIN_RADIUS,0);
         g.drawLine(0,-ORIGIN_RADIUS,0,ORIGIN_RADIUS);
 
-
-        
-        
-        
         Machine m = app.getMachine();
 
         if(m == null)
@@ -452,7 +477,68 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
         {
             drawState(g,st, st == initial);
         }
-        
+
+        // Errors
+        g2d.setStroke(new BasicStroke(CYCLE_STROKE_WIDTH));
+        for(Issue i: stateCycles)
+        {
+            Color c = i.isWarning() ?
+                app.colors.state_cycle_warning :
+                app.colors.state_cycle_error;
+            g.setColor(c);
+            drawStateCycle(g, i.getStates());
+        }
+
+        // Simulator
+        if(m.getStatus() == MachineStatus.HAPPY)
+        {
+            g2d.setStroke(new BasicStroke(SIM_STROKE_WIDTH));
+            
+            Simulator sim = app.getSimulator();
+            State cur = sim.getState();
+            State next = sim.getNextState();
+            ModelTransition trans = sim.getTransition();
+            
+            if(trans != null)
+            {
+                g.setColor(app.colors.sim_path);
+                
+                Pt prev = null;
+                for(State st: trans.getPath())
+                {
+                    Pt p = new Pt(st.getX(), st.getY());
+                    if(prev != null)
+                    {   
+                        drawArrow(g, prev, p, TRANSITION_OFFSET, TRANSITION_OFFSET, TRANSITION_ARROWHEAD_WIDTH, TRANSITION_ARROWHEAD_LENGTH);
+                    }
+
+                    prev = p;
+                }
+
+                for(State st: trans.getPath())
+                {
+                    if(st != cur && st != next)
+                    {   
+                        drawCircle(g, (int)st.getX(), (int)st.getY(), SIM_STATE_RING_RADIUS);
+                    }
+                }
+            }
+
+            
+            if(cur != null)
+            {
+                g.setColor(cur == next ? app.colors.sim_stay : app.colors.sim_state);
+                drawCircle(g, (int)cur.getX(), (int)cur.getY(), SIM_STATE_RING_RADIUS);
+            }
+
+            if(next != null && next != cur)
+            {
+                g.setColor(app.colors.sim_next_state);
+                drawCircle(g, (int)next.getX(), (int)next.getY(), SIM_STATE_RING_RADIUS);
+            }
+        }
+
+        g2d.setStroke(regularStroke);
         if(selectionBoxGoing)
         {
             int sx = (int)selectionBoxXMin;
@@ -468,16 +554,6 @@ public class Viewer extends JPanel implements StatelyListener, MouseListener, Mo
             
             g.setColor(app.colors.selection_box_outline);
             g.drawRect(sx, sy, sw, sh);
-        }
-
-        g2d.setStroke(new BasicStroke(CYCLE_STROKE_WIDTH));
-        for(Issue i: stateCycles)
-        {
-            Color c = i.isWarning() ?
-                app.colors.state_cycle_warning :
-                app.colors.state_cycle_error;
-            g.setColor(c);
-            drawStateCycle(g, i.getStates());
         }
     }
 

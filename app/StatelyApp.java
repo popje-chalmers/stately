@@ -16,16 +16,20 @@ public class StatelyApp extends JFrame implements ActionListener
     public static final FileNameExtensionFilter FILE_EXTENSION_FILTER = new FileNameExtensionFilter("FSM files", EXTENSION);
     public static final double STATE_CREATE_DX = 80;
     public static final double STATE_CREATE_DY = 0;
+    public static final int STATE_HISTORY_LIMIT = 100;
     
     public StatelyConfig config;
     public StatelyColors colors = new StatelyColors();
     public StatelyFonts fonts = new StatelyFonts();
     public StatelyMeasures measures = new StatelyMeasures();
 
+    private Inputter inputter;
     private Viewer viewer;
     private MachineEditor machineEditor;
     private SelectionManager<State> selectedStates = new SelectionManager<>();
     private Set<Signal> erroneousSignals = new HashSet<>();
+    private Simulator simulator;
+    private boolean simulationEnabled = false;
     
     private Machine machine;
     private ArrayList<StatelyListener> listeners = new ArrayList<>();
@@ -33,11 +37,16 @@ public class StatelyApp extends JFrame implements ActionListener
     private JMenuItem menuOpen, menuSave, menuSaveAs, menuQuit;
     private JMenuItem menuHelp;
     private JMenuItem menuTransform;
+
+    private JMenuItem menuSimForward, menuSimBackward, menuSimPrintRecord;
     
     private JMenuItem menuDebugMakeSignals, menuDebugPrintMachine, menuDebugPrintModel, menuDebugPrintTL;
 
     private File lastSaveFile;
     private LocalTime lastSaveTime;
+
+    private Historian historian;
+    private JLabel historyStepIndicator;
     
     public StatelyApp()
     {
@@ -56,16 +65,28 @@ public class StatelyApp extends JFrame implements ActionListener
         c.setLayout(new BorderLayout());
         c.setBackground(colors.background);
 
-        machine = new Machine("MyFSM");
-        machine.addState(new State("foo", machine));
-        machine.addSignal(new Signal("reset", SignalKind.INPUT, machine));
-        analyze();
-        
+        simulator = new Simulator();
+        Machine m = new Machine("MyFSM");
+        m.addState(new State("foo", m));
+        m.addSignal(new Signal("reset", SignalKind.INPUT, m));
+        setMachine(m);
+
+        historyStepIndicator = Helper.makeLLL(this, "");
+        fixHistoryStepIndicator();
+        inputter = new Inputter(this);
+        simulator.setInputSource(inputter);
         viewer = new Viewer(this);
+        JPanel leftPanel = new JPanel();
+        leftPanel.setBackground(colors.background);
+        leftPanel.setLayout(new BorderLayout());
+        leftPanel.add(historyStepIndicator, BorderLayout.NORTH);
+        leftPanel.add(viewer, BorderLayout.CENTER);
+        leftPanel.add(inputter, BorderLayout.SOUTH);
         machineEditor = new MachineEditor(this);
+
         
         JSplitPane divide = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                                           viewer, machineEditor);
+                                           leftPanel, machineEditor);
         
         //divide.setDividerLocation(config.win_width - measures.machine_editor_width);
         divide.setResizeWeight(1.0f);
@@ -88,6 +109,16 @@ public class StatelyApp extends JFrame implements ActionListener
 
         menuTransform = new JMenuItem("Edit with external program");
         menuTransform.addActionListener(this);
+
+        menuSimForward = new JMenuItem("Step simulation forward");
+        menuSimForward.addActionListener(this);
+        menuSimForward.setAccelerator(KeyStroke.getKeyStroke("ctrl RIGHT"));
+        menuSimBackward = new JMenuItem("Wind simulation backward");
+        menuSimBackward.addActionListener(this);
+        menuSimBackward.setAccelerator(KeyStroke.getKeyStroke("ctrl LEFT"));
+        menuSimPrintRecord = new JMenuItem("Print recording");
+        menuSimPrintRecord.addActionListener(this);
+        menuSimPrintRecord.setAccelerator(KeyStroke.getKeyStroke("ctrl R"));
 
         menuDebugMakeSignals = new JMenuItem("Make some signals");
         menuDebugMakeSignals.addActionListener(this);
@@ -113,6 +144,11 @@ public class StatelyApp extends JFrame implements ActionListener
 
         JMenu transformMenu = new JMenu("Transform");
         transformMenu.add(menuTransform);
+
+        JMenu simMenu = new JMenu("Simulation");
+        simMenu.add(menuSimForward);
+        simMenu.add(menuSimBackward);
+        simMenu.add(menuSimPrintRecord);
         
         JMenu debugMenu = new JMenu("Debug");
         debugMenu.add(menuDebugMakeSignals);
@@ -127,6 +163,7 @@ public class StatelyApp extends JFrame implements ActionListener
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
         menuBar.add(transformMenu);
+        menuBar.add(simMenu);
         menuBar.add(debugMenu);
         menuBar.add(helpMenu);
         setJMenuBar(menuBar);
@@ -157,15 +194,33 @@ public class StatelyApp extends JFrame implements ActionListener
         setTitle(title);
     }
 
+    private void fixHistoryStepIndicator()
+    {
+        if(historyStepIndicator != null)
+        {
+            if(historian != null)
+            {
+                historyStepIndicator.setText("On cycle: " + historian.getHistorySize());
+            }
+            else
+            {
+                historyStepIndicator.setText("---");
+            }
+        }
+    }
+
     public void addStatelyListener(StatelyListener l) { listeners.add(l); }
     
     public Machine getMachine() { return machine; }
     public MachineEditor getMachineEditor() { return machineEditor; }
+    public Simulator getSimulator() { return simulator; }
 
     // Call this after non-cosmetic properties of the machine have changed.
     public void reportMachineModification(Object source)
     {
         fixSelection();
+        historian.clear();
+        fixHistoryStepIndicator();
         
         if(machine == null)
         {
@@ -188,6 +243,9 @@ public class StatelyApp extends JFrame implements ActionListener
     {
         machine = m;
         analyze();
+        simulator.setState(null);
+        historian = new Historian(machine);
+        fixHistoryStepIndicator();
         selectedStates.clear();
         MachineEvent e = new MachineEvent(this, m);
         for(StatelyListener l: listeners)
@@ -253,6 +311,50 @@ public class StatelyApp extends JFrame implements ActionListener
         selectedStates.toggle(st);
         reportSelectionModification();
     }
+
+    // Simulation and history/recording services
+
+    public void printRecord()
+    {
+        String s = historian.makeWaveform();
+        System.out.println(s);
+    }
+
+    public void record()
+    {
+        State cur = simulator.getState();
+
+        if(cur != null)
+        {
+            SimulationState now = new SimulationState(cur, simulator.getEnvironment());
+            historian.record(now);
+        }
+
+        fixHistoryStepIndicator();
+    }
+
+    public void stepBackward()
+    {
+        historian.unrecord();
+        SimulationState prev = historian.peek();
+        
+        if(prev != null && prev.getState() != null && machine != null && machine.getStates().contains(prev.getState()))
+        {
+            simulator.setState(prev.getState());
+        }
+
+        fixHistoryStepIndicator();
+    }
+    
+    public void stepForward()
+    {
+        State next = simulator.getNextState();
+        if(next != null)
+        {
+            simulator.setState(next);
+            record();
+        }
+    }
     
 
     // Misc services
@@ -265,6 +367,19 @@ public class StatelyApp extends JFrame implements ActionListener
     public void editState(State st, boolean agro)
     {
         machineEditor.editState(st, agro);
+    }
+
+    public void gotoState(State st)
+    {
+        simulator.setState(st);
+        historian.clear();
+
+        if(st != null)
+        {
+            record();
+        }
+
+        fixHistoryStepIndicator();
     }
 
     public boolean isSignalErroneous(Signal s)
@@ -414,6 +529,15 @@ public class StatelyApp extends JFrame implements ActionListener
         {
             erroneousSignals.addAll(i.getSignals());
         }
+
+        if(machine.getStatus() == MachineStatus.HAPPY)
+        {
+            simulator.setModel(new Model(machine));
+        }
+        else
+        {
+            simulator.setModel(null);
+        }
     }
     
     private void fixSelection()
@@ -470,6 +594,18 @@ public class StatelyApp extends JFrame implements ActionListener
         else if(source == menuTransform)
         {
             transform();
+        }
+        else if(source == menuSimForward)
+        {
+            stepForward();
+        }
+        else if(source == menuSimBackward)
+        {
+            stepBackward();
+        }
+        else if(source == menuSimPrintRecord)
+        {
+            printRecord();
         }
         else if(source == menuHelp)
         {

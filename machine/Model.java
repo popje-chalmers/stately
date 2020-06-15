@@ -3,6 +3,7 @@ import java.util.*;
 
 public class Model
 {
+    private List<Signal> inputs;
     private List<ModelSignalComputation> signalComputations; // in computation order, only generated signals (STATEWISE and EXPRESSION)
     private Map<State,List<ModelTransition>> transitions;
     private State initialState;
@@ -14,6 +15,21 @@ public class Model
     {
         this.m = m;
         extract();
+    }
+
+    public State getInitialState()
+    {
+        return initialState;
+    }
+    
+    public List<Signal> getInputs()
+    {
+        return new ArrayList<>(inputs);
+    }
+
+    public Expression getResetCondition()
+    {
+        return resetCondition;
     }
 
     public List<ModelSignalComputation> getSignalComputations()
@@ -64,6 +80,11 @@ public class Model
             e.setPath(null);
         }
     }
+
+    public boolean hasState(State st)
+    {
+        return getTransitionsFromState(st) != null;
+    }
     
     // Inefficient, mostly for debugging
     public String toString()
@@ -93,10 +114,19 @@ public class Model
             throw new IllegalArgumentException("Can't model a non-happy machine.");
         }
 
+        inputs = new ArrayList<>();
         initialState = m.getInitialState();
         resetCondition = new Expression(m.getResetSignal());
         signalComputations = new ArrayList<>();
         transitions = new HashMap<>();
+
+        for(Signal s: m.getSignals())
+        {
+            if(s.getKind() == SignalKind.INPUT)
+            {
+                inputs.add(s);
+            }
+        }
         
         for(Signal s: m.getDependencyGraph().getOrder())
         {

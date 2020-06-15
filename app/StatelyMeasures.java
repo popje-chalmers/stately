@@ -8,4 +8,6 @@ public class StatelyMeasures
     public int signal_editor_height = 400;
     public int signal_issue_divider = 250;
     public int state_issue_divider = 600;
+    public int inputter_height = 100;
+    public int sim_signal_border = 3;
 }

@@ -63,4 +63,17 @@ public class StatelyColors
 
     public Color checkbox_background = Color.BLACK;
     public Color checkbox_foreground = Color.WHITE;
+
+    public Color sim_state = new Color(255, 200, 0);
+    public Color sim_next_state = new Color(0, 100, 255);
+    public Color sim_stay = new Color(100, 0, 255);
+    public Color sim_path = new Color(0, 255, 100, 80);
+
+    public Color sim_signals_background = new Color(32, 32, 32);
+    public Color sim_signal_unknown = Color.GRAY;
+    public Color sim_signal_off = Color.BLACK;
+    public Color sim_signal_on_input = new Color(0, 200, 100);
+    public Color sim_signal_on_other = new Color(0, 100, 200);
+    //public Color sim_signal_on_input = Color.WHITE;
+    //public Color sim_signal_on_other = Color.WHITE;
 }
