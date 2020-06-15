@@ -58,6 +58,7 @@ public class Viewer extends JPanel implements SimulationListener, StatelyListene
     
     private StatelyApp app;
     private Pt viewCenter = new Pt(0,0); // what world coordinates are in the center of view?
+    private boolean showOrigin = false;
     
     // View scale
     private int scaleExponent = 0;
@@ -413,6 +414,11 @@ public class Viewer extends JPanel implements SimulationListener, StatelyListene
                 }
             }
         }
+        else if(k == KeyEvent.VK_O && !shift && !control)
+        {
+            showOrigin = !showOrigin;
+            repaint();
+        }
     }
 
     public void keyReleased(KeyEvent e) {}
@@ -445,10 +451,13 @@ public class Viewer extends JPanel implements SimulationListener, StatelyListene
         g2d.scale(scale, scale);
         g2d.translate(-viewCenter.getX(), -viewCenter.getY());
         Stroke regularStroke = g2d.getStroke();
-        
-        g.setColor(Color.WHITE);
-        g.drawLine(-ORIGIN_RADIUS,0,ORIGIN_RADIUS,0);
-        g.drawLine(0,-ORIGIN_RADIUS,0,ORIGIN_RADIUS);
+
+        if(showOrigin)
+        {
+            g.setColor(Color.WHITE);
+            g.drawLine(-ORIGIN_RADIUS,0,ORIGIN_RADIUS,0);
+            g.drawLine(0,-ORIGIN_RADIUS,0,ORIGIN_RADIUS);
+        }
 
         Machine m = app.getMachine();
 

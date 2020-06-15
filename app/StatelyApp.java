@@ -29,12 +29,11 @@ public class StatelyApp extends JFrame implements ActionListener
     private SelectionManager<State> selectedStates = new SelectionManager<>();
     private Set<Signal> erroneousSignals = new HashSet<>();
     private Simulator simulator;
-    private boolean simulationEnabled = false;
     
     private Machine machine;
     private ArrayList<StatelyListener> listeners = new ArrayList<>();
 
-    private JMenuItem menuOpen, menuSave, menuSaveAs, menuQuit;
+    private JMenuItem menuNew, menuOpen, menuSave, menuSaveAs, menuQuit;
     private JMenuItem menuHelp;
     private JMenuItem menuTransform;
 
@@ -65,16 +64,13 @@ public class StatelyApp extends JFrame implements ActionListener
         c.setLayout(new BorderLayout());
         c.setBackground(colors.background);
 
-        simulator = new Simulator();
-        Machine m = new Machine("MyFSM");
-        m.addState(new State("foo", m));
-        m.addSignal(new Signal("reset", SignalKind.INPUT, m));
-        setMachine(m);
+        simulator = new Simulator(null);
+        newFSM("MyFSM");
 
-        historyStepIndicator = Helper.makeLLL(this, "");
-        fixHistoryStepIndicator();
         inputter = new Inputter(this);
         simulator.setInputSource(inputter);
+        historyStepIndicator = Helper.makeLLL(this, "");
+        fixHistoryStepIndicator();
         viewer = new Viewer(this);
         JPanel leftPanel = new JPanel();
         leftPanel.setBackground(colors.background);
@@ -94,6 +90,9 @@ public class StatelyApp extends JFrame implements ActionListener
 
         c.add(new TopBar(this), BorderLayout.NORTH);
 
+        menuNew = new JMenuItem("New FSM...");
+        menuNew.addActionListener(this);
+        menuNew.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed N"));
         menuOpen = new JMenuItem("Open FSM...");
         menuOpen.addActionListener(this);
         menuOpen.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed O"));
@@ -126,6 +125,7 @@ public class StatelyApp extends JFrame implements ActionListener
         menuDebugPrintMachine.addActionListener(this);
         menuDebugPrintModel = new JMenuItem("Print model to terminal");
         menuDebugPrintModel.addActionListener(this);
+        menuDebugPrintModel.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed M"));
         menuDebugPrintTL = new JMenuItem("Print TL to terminal");
         menuDebugPrintTL.addActionListener(this);
 
@@ -135,6 +135,7 @@ public class StatelyApp extends JFrame implements ActionListener
         
 
         JMenu fileMenu = new JMenu("File");
+        fileMenu.add(menuNew);
         fileMenu.add(menuOpen);
         fileMenu.addSeparator();
         fileMenu.add(menuSave);
@@ -200,13 +201,29 @@ public class StatelyApp extends JFrame implements ActionListener
         {
             if(historian != null)
             {
-                historyStepIndicator.setText("On cycle: " + historian.getHistorySize());
+                int cycle = historian.getHistorySize();
+                if(cycle >= 0)
+                {
+                    historyStepIndicator.setText("Cycle: " + cycle);
+                }
+                else
+                {
+                    historyStepIndicator.setText("---");
+                }
             }
             else
             {
                 historyStepIndicator.setText("---");
             }
         }
+    }
+
+    private void newFSM(String name)
+    {
+        Machine m = new Machine(name);
+        m.addState(new State("foo", m));
+        m.addSignal(new Signal("reset", SignalKind.INPUT, m));
+        setMachine(m);
     }
 
     public void addStatelyListener(StatelyListener l) { listeners.add(l); }
@@ -242,6 +259,7 @@ public class StatelyApp extends JFrame implements ActionListener
     public void setMachine(Machine m)
     {
         machine = m;
+        simulator.setMachine(machine);
         analyze();
         simulator.setState(null);
         historian = new Historian(machine);
@@ -335,8 +353,7 @@ public class StatelyApp extends JFrame implements ActionListener
 
     public void stepBackward()
     {
-        historian.unrecord();
-        SimulationState prev = historian.peek();
+        SimulationState prev = historian.unrecord();
         
         if(prev != null && prev.getState() != null && machine != null && machine.getStates().contains(prev.getState()))
         {
@@ -348,11 +365,12 @@ public class StatelyApp extends JFrame implements ActionListener
     
     public void stepForward()
     {
+        
         State next = simulator.getNextState();
         if(next != null)
         {
-            simulator.setState(next);
             record();
+            simulator.setState(next);
         }
     }
     
@@ -371,13 +389,13 @@ public class StatelyApp extends JFrame implements ActionListener
 
     public void gotoState(State st)
     {
+        if(st != null && st.isVirtual())
+        {
+            return;
+        }
+        
         simulator.setState(st);
         historian.clear();
-
-        if(st != null)
-        {
-            record();
-        }
 
         fixHistoryStepIndicator();
     }
@@ -575,7 +593,11 @@ public class StatelyApp extends JFrame implements ActionListener
     {
         Object source = e.getSource();
 
-        if(source == menuOpen)
+        if(source == menuNew)
+        {
+            mkNew();
+        }
+        else if(source == menuOpen)
         {
             open();
         }
@@ -713,6 +735,20 @@ public class StatelyApp extends JFrame implements ActionListener
             "scroll wheel: zoom";
 
         JOptionPane.showMessageDialog(this, message);
+    }
+
+    // "New" in the menu
+    private void mkNew()
+    {
+        String name = JOptionPane.showInputDialog(this, "Name for new FSM?\n(WARNING: you will lose any unsaved changes to the current file.)");
+        if(name == null || name.equals(""))
+        {
+            return;
+        }
+
+        lastSaveFile = null;
+        lastSaveTime = null;
+        newFSM(name);
     }
 
     // "Open" in the menu

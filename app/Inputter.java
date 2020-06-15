@@ -14,12 +14,14 @@ public class Inputter extends JPanel implements InputSource, StatelyListener, Si
     private JPanel panel;
     private Map<Signal, Value> inputValues = new HashMap<>();
     private ArrayList<SignalWidget> signalWidgets = new ArrayList<>();
+    private Simulator sim;
     
     public Inputter(StatelyApp app)
     {
         this.app = app;
         app.addStatelyListener(this);
-        app.getSimulator().addSimulationListener(this);
+        sim = app.getSimulator();
+        sim.addSimulationListener(this);
         
         setBackground(app.colors.sim_signals_background);
         setPreferredSize(new Dimension(1000, app.measures.inputter_height));
@@ -99,7 +101,7 @@ public class Inputter extends JPanel implements InputSource, StatelyListener, Si
     public void setInputValue(Signal s, Value v)
     {
         inputValues.put(s, v);
-        app.getSimulator().recompute();
+        sim.recompute();
     }
 
     // InputSource
@@ -118,7 +120,6 @@ public class Inputter extends JPanel implements InputSource, StatelyListener, Si
 
     public void simulationUpdated()
     {
-        Simulator sim = app.getSimulator();
         Environment env = null;
 
         if(sim != null)

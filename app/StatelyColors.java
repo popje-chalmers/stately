@@ -14,7 +14,7 @@ public class StatelyColors
     public Color title = Color.WHITE;
 
     public Color state_color = new Color(200,200,200);
-    public Color state_virtual_color = new Color(64, 64, 64);
+    public Color state_virtual_color = new Color(100, 100, 100);
     public Color state_text = Color.BLACK;
     public Color state_warning = new Color(224,168,0);
     public Color state_error = new Color(168,0,0);

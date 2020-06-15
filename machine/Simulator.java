@@ -4,6 +4,7 @@ import java.util.*;
 
 public class Simulator
 {
+    private Machine machine;
     private Model model;
     private InputSource source;
 
@@ -14,6 +15,11 @@ public class Simulator
 
     private List<SimulationListener> listeners = new ArrayList<>();
 
+    public Simulator(Machine m)
+    {
+        machine = m;
+    }
+    
     public void addSimulationListener(SimulationListener l)
     {
         listeners.add(l);
@@ -49,7 +55,12 @@ public class Simulator
     
     public void recompute()
     {
-        if(model == null || current == null || source == null || !model.hasState(current))
+        if(machine == null || !machine.getStates().contains(current))
+        {
+            current = null;
+        }
+        
+        if(machine == null || model == null || current == null || source == null || !model.hasState(current))
         {
             environment = null;
             transition = null;
@@ -57,7 +68,7 @@ public class Simulator
             notifyListeners();
             return;
         }
-
+        
         environment = new Environment(current);
         
         for(Signal s: model.getInputs())
@@ -129,6 +140,12 @@ public class Simulator
     public void setInputSource(InputSource s)
     {
         source = s;
+        recompute();
+    }
+
+    public void setMachine(Machine m)
+    {
+        machine = m;
         recompute();
     }
     

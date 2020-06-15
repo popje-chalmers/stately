@@ -43,6 +43,7 @@ public class Transformatron
         {
         case CMD_INITIAL:
             interpretInitial(exp, list);
+            break;
         case CMD_NAME:
             interpretName(exp, list);
             break;
