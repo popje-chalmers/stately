@@ -267,6 +267,11 @@ public class Machine implements Named
     
     private void breakState(State st)
     {
+        if(initialState == st)
+        {
+            initialState = null;
+        }
+        
         for(Signal s2: signals)
         {
             if(s2.getCode().isCompiled()
