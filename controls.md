@@ -8,6 +8,7 @@
 * ctrl+Q: quit
 * ctrl+R: print history
 * ctrl+M: print model
+* ctrl+E: export FL (to current save file but .fsm -> .fl)
 
 ##State diagram
 ###Mouse

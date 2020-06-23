@@ -162,4 +162,44 @@ public class Issue
                          "special signal \"" + s.getName() + "\" must be of kind: " + kind,
                          signals, null);
     }
+
+    public static Issue flNameBadMachine(String flname)
+    {
+        Issue i = new Issue(IssueKind.FL_NAME_BAD_MACHINE,
+                         "Machine results in a bad or reserved FL name: \"" + flname + "\"",
+                         null, null);
+        i.warning = true;
+        return i;
+    }
+
+    public static Issue flNameBadSignal(Signal s, String flname)
+    {
+        List<Signal> signals = new ArrayList<>();
+        signals.add(s);
+        Issue i = new Issue(IssueKind.FL_NAME_BAD,
+                         "Signal \"" + s.getName() + "\" results in bad or reserved FL name: \"" + flname + "\"",
+                         signals, null);
+        i.warning = true;
+        return i;
+    }
+
+    public static Issue flNameBadState(State st, String flname)
+    {
+        List<State> states = new ArrayList<>();
+        states.add(st);
+        Issue i = new Issue(IssueKind.FL_NAME_BAD,
+                         "State \"" + st.getName() + "\" results in a bad or reserved FL name: \"" + flname + "\"",
+                         null, states);
+        i.warning = true;
+        return i;
+    }
+
+    public static Issue flNameConflicts(List<Signal> signals, List<State> states)
+    {
+        Issue i = new Issue(IssueKind.FL_NAME_CONFLICTS,
+                         "FL name conflict(s)",
+                         signals, states);
+        i.warning = true;
+        return i;
+    }
 }

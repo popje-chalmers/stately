@@ -3,7 +3,7 @@ import java.util.*;
 
 public class CheckResetSignal
 {
-    // Find at least one virtual-state cycle issue if one exists.
+    // Check that the reset signal exists and is the correct kind.
     public static List<Issue> checkResetSignal(Machine m)
     {
         List<Issue> issues = new ArrayList<Issue>();

@@ -132,6 +132,10 @@ public class Machine implements Named
         dgraph = null;
         model = null;
 
+        // Bandaid fix to solve renaming-sorting issue.
+        Collections.sort(signals, new NameComparator<Signal>());
+        Collections.sort(states, new NameComparator<State>());
+        
         compileAll();
         
         // Phase 0: generate coarse graph for display purposes
@@ -193,6 +197,7 @@ public class Machine implements Named
 
         // Phase 5: warnings for suspicious choices, don't abort
         registerIssues(CheckWarnings.checkWarnings(this), status);
+        registerIssues(CheckFLNames.checkFLNames(this), status);
 
         // Debugging: make sure no error was missed.
         for(Issue is: issues)

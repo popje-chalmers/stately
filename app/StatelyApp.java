@@ -12,6 +12,7 @@ import javax.swing.filechooser.*;
 public class StatelyApp extends JFrame implements ActionListener
 {
     public static final String EXTENSION = "fsm";
+    public static final String FL_EXTENSION = "fl";
     public static final String TRANSFORM_TMP = "/tmp/stately_tmp";
     public static final FileNameExtensionFilter FILE_EXTENSION_FILTER = new FileNameExtensionFilter("FSM files", EXTENSION);
     public static final double STATE_CREATE_DX = 80;
@@ -28,21 +29,23 @@ public class StatelyApp extends JFrame implements ActionListener
     private MachineEditor machineEditor;
     private SelectionManager<State> selectedStates = new SelectionManager<>();
     private Set<Signal> erroneousSignals = new HashSet<>();
+    private Set<Signal> warneousSignals = new HashSet<>();
     private Simulator simulator;
     
     private Machine machine;
     private ArrayList<StatelyListener> listeners = new ArrayList<>();
 
-    private JMenuItem menuNew, menuOpen, menuSave, menuSaveAs, menuQuit;
+    private JMenuItem menuNew, menuOpen, menuSave, menuSaveAs, menuFLExport, menuQuit;
     private JMenuItem menuHelp;
-    private JMenuItem menuTransform;
+    private JMenuItem menuRename, menuEditExternal;
 
     private JMenuItem menuSimForward, menuSimBackward, menuSimPrintRecord;
     
-    private JMenuItem menuDebugMakeSignals, menuDebugPrintMachine, menuDebugPrintModel, menuDebugPrintTL;
+    private JMenuItem menuDebugMakeSignals, menuDebugPrintMachine, menuDebugPrintModel, menuDebugPrintTL, menuDebugPrintFL;
 
     private File lastSaveFile;
     private LocalTime lastSaveTime;
+    private LocalTime lastExportTime;
 
     private Historian historian;
     private JLabel historyStepIndicator;
@@ -102,12 +105,17 @@ public class StatelyApp extends JFrame implements ActionListener
         menuSaveAs = new JMenuItem("Save FSM as...");
         menuSaveAs.addActionListener(this);
         menuSaveAs.setAccelerator(KeyStroke.getKeyStroke("ctrl shift pressed S"));
+        menuFLExport = new JMenuItem("Export FL");
+        menuFLExport.addActionListener(this);
+        menuFLExport.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed E"));
         menuQuit = new JMenuItem("Quit");
         menuQuit.addActionListener(this);
         menuQuit.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed Q"));
 
-        menuTransform = new JMenuItem("Edit with external program");
-        menuTransform.addActionListener(this);
+        menuRename = new JMenuItem("Rename FSM");
+        menuRename.addActionListener(this);
+        menuEditExternal = new JMenuItem("Edit with external program");
+        menuEditExternal.addActionListener(this);
 
         menuSimForward = new JMenuItem("Step simulation forward");
         menuSimForward.addActionListener(this);
@@ -128,6 +136,8 @@ public class StatelyApp extends JFrame implements ActionListener
         menuDebugPrintModel.setAccelerator(KeyStroke.getKeyStroke("ctrl pressed M"));
         menuDebugPrintTL = new JMenuItem("Print TL to terminal");
         menuDebugPrintTL.addActionListener(this);
+        menuDebugPrintFL = new JMenuItem("Print FL to terminal");
+        menuDebugPrintFL.addActionListener(this);
 
         menuHelp = new JMenuItem("Help");
         menuHelp.addActionListener(this);
@@ -141,10 +151,13 @@ public class StatelyApp extends JFrame implements ActionListener
         fileMenu.add(menuSave);
         fileMenu.add(menuSaveAs);
         fileMenu.addSeparator();
+        fileMenu.add(menuFLExport);
+        fileMenu.addSeparator();
         fileMenu.add(menuQuit);
 
-        JMenu transformMenu = new JMenu("Transform");
-        transformMenu.add(menuTransform);
+        JMenu fsmMenu = new JMenu("FSM");
+        fsmMenu.add(menuRename);
+        fsmMenu.add(menuEditExternal);
 
         JMenu simMenu = new JMenu("Simulation");
         simMenu.add(menuSimForward);
@@ -157,13 +170,14 @@ public class StatelyApp extends JFrame implements ActionListener
         debugMenu.add(menuDebugPrintMachine);
         debugMenu.add(menuDebugPrintModel);
         debugMenu.add(menuDebugPrintTL);
+        debugMenu.add(menuDebugPrintFL);
 
         JMenu helpMenu = new JMenu("Help");
         helpMenu.add(menuHelp);
         
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
-        menuBar.add(transformMenu);
+        menuBar.add(fsmMenu);
         menuBar.add(simMenu);
         menuBar.add(debugMenu);
         menuBar.add(helpMenu);
@@ -191,6 +205,14 @@ public class StatelyApp extends JFrame implements ActionListener
                               lastSaveTime.getHour(),
                               lastSaveTime.getMinute(),
                               lastSaveTime.getSecond());
+        }
+        if(lastExportTime != null)
+        {
+            title += " - last exported " +
+                String.format("%02d:%02d:%02d",
+                              lastExportTime.getHour(),
+                              lastExportTime.getMinute(),
+                              lastExportTime.getSecond());
         }
         setTitle(title);
     }
@@ -405,6 +427,11 @@ public class StatelyApp extends JFrame implements ActionListener
         return erroneousSignals.contains(s);
     }
 
+    public boolean isSignalWarneous(Signal s)
+    {
+        return warneousSignals.contains(s);
+    }
+
     public void makeState(Pt loc)
     {
         double x = loc.getX();
@@ -543,9 +570,17 @@ public class StatelyApp extends JFrame implements ActionListener
     {
         machine.analyze();
         erroneousSignals.clear();
+        warneousSignals.clear();
         for(Issue i: machine.getIssues())
         {
-            erroneousSignals.addAll(i.getSignals());
+            if(i.isWarning())
+            {
+                warneousSignals.addAll(i.getSignals());
+            }
+            else
+            {
+                erroneousSignals.addAll(i.getSignals());
+            }
         }
 
         if(machine.getStatus() == MachineStatus.HAPPY)
@@ -609,11 +644,19 @@ public class StatelyApp extends JFrame implements ActionListener
         {
             saveAs();
         }
+        else if(source == menuFLExport)
+        {
+            exportFL();
+        }
         else if(source == menuQuit)
         {
             quit();
         }
-        else if(source == menuTransform)
+        else if(source == menuRename)
+        {
+            rename();
+        }
+        else if(source == menuEditExternal)
         {
             transform();
         }
@@ -698,7 +741,7 @@ public class StatelyApp extends JFrame implements ActionListener
                 if(machine.getStatus() == MachineStatus.HAPPY)
                 {
                     System.out.println();
-                    System.out.println(new Model(machine));
+                    System.out.println(machine.getModel());
                     System.out.println();
                 }
                 else
@@ -719,6 +762,23 @@ public class StatelyApp extends JFrame implements ActionListener
                     System.out.println(exp.toString());
                 }
                 System.out.println();
+            }
+        }
+        else if(source == menuDebugPrintFL)
+        {
+            if(machine != null)
+            {
+                machineEditor.apply(); // apply any unsaved edits
+                if(machine.getStatus() == MachineStatus.HAPPY)
+                {
+                    System.out.println();
+                    System.out.println(FLOut.generateFL(machine));
+                    System.out.println();
+                }
+                else
+                {
+                    System.out.println("\nMachine not happy (outstanding errors), cannot generate FL.\n");
+                }
             }
         }
     }
@@ -748,6 +808,7 @@ public class StatelyApp extends JFrame implements ActionListener
 
         lastSaveFile = null;
         lastSaveTime = null;
+        lastExportTime = null;
         newFSM(name);
     }
 
@@ -764,6 +825,7 @@ public class StatelyApp extends JFrame implements ActionListener
             {
                 lastSaveFile = f;
                 lastSaveTime = null;
+                lastExportTime = null;
                 fixTitle();
             }
         }
@@ -862,6 +924,74 @@ public class StatelyApp extends JFrame implements ActionListener
         }
 
         fixTitle();
+    }
+
+    private void exportFL()
+    {
+        machineEditor.apply();
+
+        if(machine == null)
+        {
+            return;
+        }
+
+        if(lastSaveFile == null)
+        {
+            JOptionPane.showMessageDialog(this, "Cannot export without knowing where.\nSave the FSM somewhere first.");
+            return;
+        }
+
+        if(machine.getStatus() != MachineStatus.HAPPY)
+        {
+            JOptionPane.showMessageDialog(this, "Cannot export unhappy machine.");
+            return;
+        }
+
+        String parent = lastSaveFile.getParent();
+        String fsmFileName = lastSaveFile.getName();
+        if(fsmFileName.endsWith("." + EXTENSION))
+        {
+            String flFileName = fsmFileName.substring(0, fsmFileName.length() - EXTENSION.length()) + FL_EXTENSION;
+
+            File f = new File(parent, flFileName);
+            try
+            {
+                String fl = FLOut.generateFL(machine);
+                if(fl == null)
+                {
+                    throw Misc.impossible();
+                }
+                writeFile(f, fl);
+                lastExportTime = LocalTime.now();
+                System.out.println("Exported successfully to: " + f.getPath());
+            }
+            catch(Throwable t)
+            {
+                t.printStackTrace();
+                JOptionPane.showMessageDialog(this, t.getMessage());
+            }
+        }
+        else
+        {
+            JOptionPane.showMessageDialog(this, "Save file doesn't end with ." + EXTENSION + ",\nrefusing to export just in case.");
+        }
+
+        fixTitle();
+    }
+
+    private void rename()
+    {
+        if(machine == null)
+        {
+            return;
+        }
+        
+        String newName = JOptionPane.showInputDialog(this, "Enter new FSM name (note: unrelated to filename)", machine.getName());
+        if(newName != null && !newName.equals(""))
+        {
+            machine.setName(newName);
+            reportMachineModification(this);
+        }
     }
 
     private boolean transform()

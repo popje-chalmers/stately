@@ -164,6 +164,10 @@ One of the main uses of this feature is for duplicating parts of the machine; on
 
 ## The "model"
 
-In preparation for FL output, Stately can flatten the machine into a simpler model, which has the following characteristics:
+Stately can flatten the machine into a simpler model, which has the following characteristics:
 - Non-input signals are turned into single expressions (and conveniently in dependency order).
-- State transitions are extracted and given in the form `from -> to {condition}`. Note: virtual intermediates show up with arrows between `from` and `to`; this will be great for visualization.
+- State transitions are extracted and given in the form `from -> to {condition}`. Note: virtual intermediates show up with arrows between `from` and `to`; this information is retained for visualization.
+
+## FL output
+
+There is a prototype FL output engine now, either to the terminal via the debug menu or to a file next to the FSM's save file (".fsm" -> ".fl") via the File menu.

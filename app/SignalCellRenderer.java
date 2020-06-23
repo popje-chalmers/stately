@@ -21,7 +21,10 @@ public class SignalCellRenderer extends JLabel implements ListCellRenderer<Signa
     public Component getListCellRendererComponent(JList<? extends Signal> list, Signal value, int index, boolean isSelected, boolean cellHasFocus)
     {
         Color fg = isSelected ? app.colors.signal_selected : app.colors.signal_not_selected;
-        Color bg = app.isSignalErroneous(value) ? app.colors.signal_bg_error : app.colors.signal_bg;
+        Color bg =
+            app.isSignalErroneous(value) ? app.colors.signal_bg_error :
+            app.isSignalWarneous(value) ? app.colors.signal_bg_warning :
+            app.colors.signal_bg;
 
         String beforeName = value.isInternal() ? "." : "";
         setText(SignalKind.toSymbol(value.getKind()) + " " + beforeName + value.getName());
