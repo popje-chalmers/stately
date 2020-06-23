@@ -24,7 +24,7 @@ public class Inputter extends JPanel implements InputSource, StatelyListener, Si
         sim.addSimulationListener(this);
         
         setBackground(app.colors.sim_signals_background);
-        setPreferredSize(new Dimension(1000, app.measures.inputter_height));
+        setPreferredSize(new Dimension(100, app.measures.inputter_height));
 
         panel = new JPanel();
         panel.setBackground(app.colors.sim_signals_background);
