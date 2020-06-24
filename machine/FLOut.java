@@ -101,7 +101,7 @@ public class FLOut
     {
         List<String> out = new ArrayList<>();
 
-        out.add("CELL " + quote("draw hier " + machineFLName(m)));
+        out.add("CELL " + quote("draw_hier " + machineFLName(m)));
         out.addAll(indentAll(1, listBlocks(generateCellInternals(m), true)));
 
         return out;
