@@ -75,22 +75,20 @@ public class StatelyApp extends JFrame implements ActionListener
         historyStepIndicator = Helper.makeLLL(this, "");
         fixHistoryStepIndicator();
         viewer = new Viewer(this);
+        machineEditor = new MachineEditor(this);
+
         JPanel leftPanel = new JPanel();
         leftPanel.setBackground(colors.background);
         leftPanel.setLayout(new BorderLayout());
         leftPanel.add(historyStepIndicator, BorderLayout.NORTH);
         leftPanel.add(viewer, BorderLayout.CENTER);
-        leftPanel.add(inputter, BorderLayout.SOUTH);
-        machineEditor = new MachineEditor(this);
-
-        
+        JSplitPane leftDivide = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                                               leftPanel, inputter);
+        leftDivide.setResizeWeight(1.0f);
         JSplitPane divide = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                                           leftPanel, machineEditor);
-        
-        //divide.setDividerLocation(config.win_width - measures.machine_editor_width);
+                                           leftDivide, machineEditor);
         divide.setResizeWeight(1.0f);
         c.add(divide, BorderLayout.CENTER);
-
         c.add(new TopBar(this), BorderLayout.NORTH);
 
         menuNew = new JMenuItem("New FSM...");
@@ -142,8 +140,6 @@ public class StatelyApp extends JFrame implements ActionListener
         menuHelp = new JMenuItem("Help");
         menuHelp.addActionListener(this);
 
-        
-
         JMenu fileMenu = new JMenu("File");
         fileMenu.add(menuNew);
         fileMenu.add(menuOpen);
@@ -163,7 +159,7 @@ public class StatelyApp extends JFrame implements ActionListener
         simMenu.add(menuSimForward);
         simMenu.add(menuSimBackward);
         simMenu.add(menuSimPrintRecord);
-        
+
         JMenu debugMenu = new JMenu("Debug");
         debugMenu.add(menuDebugMakeSignals);
         debugMenu.addSeparator();
@@ -174,7 +170,7 @@ public class StatelyApp extends JFrame implements ActionListener
 
         JMenu helpMenu = new JMenu("Help");
         helpMenu.add(menuHelp);
-        
+
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
         menuBar.add(fsmMenu);

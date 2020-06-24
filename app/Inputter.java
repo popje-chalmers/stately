@@ -9,9 +9,9 @@ import javax.swing.event.*;
 // Also shows signals.
 public class Inputter extends JPanel implements InputSource, StatelyListener, SimulationListener
 {
-    public static final int COLUMNS = 10;
     private StatelyApp app;
     private JPanel panel;
+    private JScrollPane scroller;
     private Map<Signal, Value> inputValues = new HashMap<>();
     private ArrayList<SignalWidget> signalWidgets = new ArrayList<>();
     private Simulator sim;
@@ -26,11 +26,15 @@ public class Inputter extends JPanel implements InputSource, StatelyListener, Si
         setBackground(app.colors.sim_signals_background);
         setPreferredSize(new Dimension(100, app.measures.inputter_height));
 
-        panel = new JPanel();
+        panel = new ScrollablePanel(true, false);
+        //panel = new JPanel();
         panel.setBackground(app.colors.sim_signals_background);
+        panel.setLayout(new LRLayout());
         
         setLayout(new BorderLayout());
-        add(new JScrollPane(panel), BorderLayout.CENTER);
+        scroller = Helper.scroll(panel, false, true);
+        scroller.getViewport().setBackground(app.colors.sim_signals_background);
+        add(scroller, BorderLayout.CENTER);
 
         rebuild();
     }
@@ -56,42 +60,29 @@ public class Inputter extends JPanel implements InputSource, StatelyListener, Si
                 remove.add(s);
             }
         }
+
         for(Signal s: remove)
         {
             inputValues.remove(s);
         }
-        
-        int items = signals.size();
-        int rows = (items + COLUMNS - 1) / COLUMNS;
-        int slots = rows * COLUMNS;
 
-        if(rows != 0)
+        for(Signal s: signals)
         {
-            panel.setLayout(new GridLayout(rows, COLUMNS));
-
-            for(Signal s: signals)
+            if(s.getKind() == SignalKind.INPUT)
             {
-                if(s.getKind() == SignalKind.INPUT)
-                {
-                    SignalWidget w = new SignalWidget(app, this, s, getInputValue(s));
-                    panel.add(w);
-                    signalWidgets.add(w);
-                }
+                SignalWidget w = new SignalWidget(app, this, s, getInputValue(s));
+                panel.add(w);
+                signalWidgets.add(w);
             }
+        }
 
-            for(Signal s: signals)
+        for(Signal s: signals)
+        {
+            if(s.getKind() != SignalKind.INPUT)
             {
-                if(s.getKind() != SignalKind.INPUT)
-                {
-                    SignalWidget w = new SignalWidget(app, this, s, new Value(false));
-                    panel.add(w);
-                    signalWidgets.add(w);
-                }
-            }
-            
-            for(int i = items; i < slots; i++)
-            {
-                panel.add(new JLabel("-"));
+                SignalWidget w = new SignalWidget(app, this, s, new Value(false));
+                panel.add(w);
+                signalWidgets.add(w);
             }
         }
 
