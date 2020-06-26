@@ -12,7 +12,7 @@ import javax.swing.filechooser.*;
 public class StatelyApp extends JFrame implements ActionListener
 {
     public static final String EXTENSION = "fsm";
-    public static final String FL_EXTENSION = "fl";
+    public static final String FL_EXTENSION = "fsm.fl";
     public static final String TRANSFORM_TMP = "/tmp/stately_tmp";
     public static final FileNameExtensionFilter FILE_EXTENSION_FILTER = new FileNameExtensionFilter("FSM files", EXTENSION);
     public static final double STATE_CREATE_DX = 80;

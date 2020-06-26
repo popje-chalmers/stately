@@ -170,4 +170,4 @@ Stately can flatten the machine into a simpler model, which has the following ch
 
 ## FL output
 
-There is a prototype FL output engine now, either to the terminal via the debug menu or to a file next to the FSM's save file (".fsm" -> ".fl") via the File menu.
+There is a prototype FL output engine now, either to the terminal via the debug menu or to a file next to the FSM's save file (".fsm" -> ".fsm.fl") via the File menu.
