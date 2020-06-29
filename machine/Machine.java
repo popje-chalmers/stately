@@ -28,6 +28,11 @@ public class Machine implements Named
     // Only valid when status > UNCOMPILED
     private DependencyGraph dgraph;
 
+    // Sorting for the lists
+    private Comparator<Signal> signalComp = new CascadingComparator<>(
+        new PriorityComparator(),
+        new NameComparator<>());
+    private Comparator<State> stateComp = new NameComparator<>();
     
 
     public Machine(String name)
@@ -53,7 +58,7 @@ public class Machine implements Named
     public void addSignal(Signal s)
     {
         signals.add(s);
-        Collections.sort(signals, new NameComparator<Signal>());
+        Collections.sort(signals, signalComp);
     }
 
     public void addState(State s)
@@ -63,7 +68,7 @@ public class Machine implements Named
             initialState = s;
         }
         states.add(s);
-        Collections.sort(states, new NameComparator<State>());
+        Collections.sort(states, stateComp);
     }
 
     public Signal findSignal(String name)
@@ -133,8 +138,8 @@ public class Machine implements Named
         model = null;
 
         // Bandaid fix to solve renaming-sorting issue.
-        Collections.sort(signals, new NameComparator<Signal>());
-        Collections.sort(states, new NameComparator<State>());
+        Collections.sort(signals, signalComp);
+        Collections.sort(states, stateComp);
         
         compileAll();
         

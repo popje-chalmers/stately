@@ -8,6 +8,7 @@ public class Signal implements Named
     private String description = "";
     private ExpressionCode code; // exists for all, only used for EXPRESSION signals
     private boolean internal = false; // only relevant to STATEWISE and EXPRESSION signals (since INPUT signals are never internal, obviously)
+    private int priority = 0;
 
     public Signal(String name, SignalKind kind, Machine m)
     {
@@ -39,10 +40,12 @@ public class Signal implements Named
     public boolean getInternal() { return internal; } // only for sw/expr
     public SignalKind getKind() { return kind; }
     public String getName() { return name; }
+    public int getPriority() { return priority; }
     public boolean isInternal() { return internal && kind != SignalKind.INPUT; }
     public void setDescription(String s) { description = s; }
-    public void setName(String s) { name = s; }
     public void setInternal(boolean b) { internal = b; } // only for sw/expr
+    public void setName(String s) { name = s; }
+    public void setPriority(int p) { priority = p; }
     
     public void setKind(SignalKind k)
     {
@@ -61,6 +64,7 @@ public class Signal implements Named
         content.put("description", SExp.mkString(description));
         content.put("code", SExp.mkString(code.getSource()));
         content.put("internal", SExp.mkBoolAsInt(internal));
+        content.put("priority", SExp.mkInt(priority));
         return SExp.stringMapToExp(content);
     }
 
@@ -85,11 +89,13 @@ public class Signal implements Named
 
         // Optional parameters
         boolean internal = Unpack.getBooleanItem(content, "internal", true, false);
+        int priority = Unpack.getIntItem(content, "priority", true, 0);
 
         Signal s = new Signal(name, kind, m);
         s.setDescription(description);
         s.getCode().setSource(code);
         s.setInternal(internal);
+        s.setPriority(priority);
         return s;
     }
 

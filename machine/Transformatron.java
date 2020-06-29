@@ -90,28 +90,31 @@ public class Transformatron
 
     private void interpretSignal(SExp exp, List<SExp> args)
     {
-        if(args.size() != 5)
+        if(args.size() != 6)
         {
             throw TransformatronError.bad(exp);
         }
+        int arg = 0;
 
-        String name = gimme(args, 0, SExpKind.STRING).getString();
-        SignalKind kind = SignalKind.fromAtom(gimme(args, 1, SExpKind.ATOM).getAtom());
+        String name = gimme(args, arg++, SExpKind.STRING).getString();
+        SignalKind kind = SignalKind.fromAtom(gimme(args, arg++, SExpKind.ATOM).getAtom());
         if(kind == null)
         {
             throw TransformatronError.bad(args.get(1));
         }
-        int internalInt = gimme(args, 2, SExpKind.INT).getInt();
+        int internalInt = gimme(args, arg++, SExpKind.INT).getInt();
         if(internalInt != 0 && internalInt != 1)
         {
             throw TransformatronError.bad(args.get(2));
         }
         boolean internal = internalInt != 0;
-        String description = gimme(args, 3, SExpKind.STRING).getString();
-        String code = gimme(args, 4, SExpKind.STRING).getString();
+        int priority = gimme(args, arg++, SExpKind.INT).getInt();
+        String description = gimme(args, arg++, SExpKind.STRING).getString();
+        String code = gimme(args, arg++, SExpKind.STRING).getString();
 
         Signal s = new Signal(name, kind, m);
         s.setInternal(internal);
+        s.setPriority(priority);
         s.setDescription(description);
         s.getCode().setSource(code);
         m.addSignal(s);
@@ -227,6 +230,7 @@ public class Transformatron
         list.add(SExp.mkString(s.getName()));
         list.add(SExp.mkAtom(SignalKind.toAtom(s.getKind())));
         list.add(SExp.mkBoolAsInt(s.getInternal()));
+        list.add(SExp.mkInt(s.getPriority()));
         list.add(SExp.mkString(s.getDescription()));
         list.add(SExp.mkString(s.getCode().getSource()));
         out.add(SExp.mkList(list));

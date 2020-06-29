@@ -17,6 +17,7 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
     private JTextArea descriptionArea;
     private JComboBox<String> kindChooser;
     private JCheckBox internalCheckBox;
+    private JTextField priorityField;
     private CodeArea codeArea;
     private JButton applyButton;
 
@@ -34,11 +35,13 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         descriptionArea = Helper.textArea(app);
         kindChooser = new JComboBox<>(kindChoices);
         internalCheckBox = Helper.checkBox(app, "Internal? (no effect on inputs)");
+        priorityField = Helper.textField(app);
         codeArea = new CodeArea(app);
         applyButton = Helper.button(app, "Apply changes");
         
         kindChooser.addActionListener(this);
         internalCheckBox.addActionListener(this);
+        priorityField.getDocument().addDocumentListener(this);
         descriptionArea.getDocument().addDocumentListener(this);
         codeArea.getTextArea().getDocument().addDocumentListener(this);
         applyButton.addActionListener(this);
@@ -70,6 +73,8 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         editorPanel.add(kindChooser, c);
         editorPanel.add(Helper.makeLLL(app, "Properties:"), c);
         editorPanel.add(internalCheckBox, c);
+        editorPanel.add(Helper.makeLLL(app, "Priority:"), c);
+        editorPanel.add(priorityField, c);
         editorPanel.add(Helper.makeLLL(app, "Expression, if applicable:"), c);
         c.weighty = 1;
         editorPanel.add(codeArea, c);
@@ -115,6 +120,7 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         SignalKind kind = SignalKind.INPUT;
         boolean internal = false;
         String source = "";
+        String priorityString = "";
         //boolean hasExpression = false;
         
         if(signal != null)
@@ -124,6 +130,7 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
             description = signal.getDescription();
             kind = signal.getKind();
             internal = signal.getInternal();
+            priorityString = "" + signal.getPriority();
             //hasExpression = signal.getKind();
             source = signal.getCode().getSource();
         }
@@ -139,6 +146,7 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         descriptionArea.setEnabled(valid);
         kindChooser.setEnabled(valid);
         internalCheckBox.setEnabled(valid);
+        priorityField.setText(priorityString);
         codeArea.getTextArea().setEnabled(valid);
         applyButton.setEnabled(valid);
     }
@@ -149,6 +157,15 @@ public class SignalEditor extends CommonEditor<Signal> implements ActionListener
         if(codeArea.getTextArea().isEnabled())
         {
             signal.getCode().setSource(codeArea.getTextArea().getText());
+        }
+        try
+        {
+            int priority = Integer.parseInt(priorityField.getText());
+            signal.setPriority(priority);
+        }
+        catch(Throwable t)
+        {
+            System.out.println("Warning: couldn't parse priority integer for signal " + signal.getName() + ": " + priorityField.getText() + ", leaving priority unchanged.");
         }
         signal.setKind(kindForString((String)kindChooser.getSelectedItem()));
         signal.setInternal(internalCheckBox.isSelected());

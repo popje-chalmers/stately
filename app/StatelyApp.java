@@ -240,7 +240,9 @@ public class StatelyApp extends JFrame implements ActionListener
     {
         Machine m = new Machine(name);
         m.addState(new State("foo", m));
-        m.addSignal(new Signal("reset", SignalKind.INPUT, m));
+        Signal r = new Signal("reset", SignalKind.INPUT, m);
+        r.setPriority(-100);
+        m.addSignal(r);
         setMachine(m);
     }
 
@@ -1077,7 +1079,7 @@ public class StatelyApp extends JFrame implements ActionListener
         out += "-- Cheatsheet:\n";
         out += "-- (name \"fsmname\")\n";
         out += "-- (translate <deltaX> <deltaY>)\n";
-        out += "-- (signal \"name\" <kind> <internal> \"description\"" + " \"expression code\")\n";
+        out += "-- (signal \"name\" <kind> <internal> <priority> \"description\"" + " \"expression code\")\n";
         out += "--   n.b. <kind> is in {input, expression, statewise}\n";
         out += "-- (state \"name\" \"description\" <isvirtual> <x> <y> \"state code\")\n";
         out += "\n";
