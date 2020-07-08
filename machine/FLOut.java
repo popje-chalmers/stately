@@ -397,7 +397,7 @@ public class FLOut
     public static String stateFLName(Machine m, State st)
     {
         //return machineFLName(m) + "__" + fixChars(st.getName());
-        return fixChars(st.getName());
+        return fixChars(st.getName()).toUpperCase();
     }
 
     private static String fixChars(String s)
