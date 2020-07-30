@@ -1,11 +1,17 @@
 # Stately
-*The less worse way of making Mealy machines.*
+*The less worse way of making FSMs.*
+
+## Compatability, dependencies, and compilation
+Tested only on Linux machines so far.
+The only dependency is Java, for example via the openjdk-11-jdk package on Ubuntu.
+After installing that, simply clone the repository and run `make`inside to compile it.
+The result is `Stately.jar`, which can be run via `java -jar Stately.jar`.
 
 ## Ideas
 
 ### Inside-out outputs
 Needing to express output signals as state-dependent expressions is unhelpful when designing an FSM!
-Given that the machine operates in one state at a time, the question "in which states is signal Q enabled?" is usually fairly useless compared to the question "what happens in state S?", especially when signals need to act in harmony (very frequently the case!).
+Given that the machine operates in one state at a time, the question "in which states is signal Q enabled?" is usually fairly useless compared to the question "what happens in state S?", especially when signals need to act in harmony.
 As well as making it almost impossible to see what a state does at a glance---as one needs to hunt through all the output signal equations---this approach also means editing the expressions for all relevant signals whenever a state is added/removed, which is time-consuming and error-prone.
 So Stately allows outputs to be expressed one of two ways: as a single expression (which may or may not depend on the state, `output <- ...` thinking), or as a signal that is zero unless specified otherwise *inside each state* (`state -> ...` thinking).
 
@@ -24,23 +30,23 @@ The solution Stately opts for is to encourage the use of such entry-point states
 ### Scope limitation: control signals
 To avoid reimplementing half of FL, signals are all "control signals", i.e. single bits.
 
-## Some "features" you might want to be aware of before starting
-1. It's written in java so you need openjdk (for example "openjdk-11-jdk" on ubuntu).
-2. It's a bit finicky in general.
-
 ## Making it go
 
 ### Compiling and running
+* Compile: make
+* Run: java -jar Stately.jar
 * Compile and run: make run
-* Only compile: make
-* Only run: java -jar Stately.jar
+
+### Examples
+There are several example FSMs in the "examples" directory.
 
 ### Mouse and keybindings
 See controls.md.
 
-### Menu options
+### Menu options (incomplete)
 - Help > Help: shows some keybindings
-- File menu: self-explanatory
+- File > Export FL: creates an FL version of the state machine and saves it to `<current fsm file>.fl`
+- Remainder of file menu: self-explanatory
 - Transform > Edit with external program: writes the machine (in a handy representation) to a file for editing, and reads it back in; see the "Transform" section for more details
 - Debug > Make some signals: makes a few hw/iot related signals
 - Debug > Print machine to terminal: this is what the save file looks like
