@@ -136,8 +136,9 @@ public class Inputter extends JPanel implements InputSource, StatelyListener, Si
                 }
                 else
                 {
-                    //w.setSimulatedValue(null);
-                    throw new Error("Internal error: environment missing signal for widget " + s.getName());
+                    //This can happen when a signal is removed.
+                    w.setSimulatedValue(null);
+                    //throw new Error("Internal error: environment missing signal for widget " + s.getName());
                 }
             }
         }

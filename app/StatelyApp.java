@@ -44,6 +44,7 @@ public class StatelyApp extends JFrame implements ActionListener
     private JMenuItem menuDebugMakeSignals, menuDebugPrintMachine, menuDebugPrintModel, menuDebugPrintTL, menuDebugPrintFL;
 
     private File lastSaveFile;
+    private File lastDir;
     private LocalTime lastSaveTime;
     private LocalTime lastExportTime;
 
@@ -814,9 +815,9 @@ public class StatelyApp extends JFrame implements ActionListener
     private void open()
     {
         JFileChooser jfc = new JFileChooser();
-        if(lastSaveFile != null)
+        if(lastDir != null)
         {
-            jfc.setCurrentDirectory(lastSaveFile.getParentFile());
+            jfc.setCurrentDirectory(lastDir);
         }
         jfc.setFileFilter(FILE_EXTENSION_FILTER);
         int res = jfc.showOpenDialog(this);
@@ -826,6 +827,7 @@ public class StatelyApp extends JFrame implements ActionListener
             if(readFSMFromFile(f))
             {
                 lastSaveFile = f;
+                lastDir = f.getParentFile();
                 lastSaveTime = null;
                 lastExportTime = null;
                 fixTitle();
@@ -859,9 +861,9 @@ public class StatelyApp extends JFrame implements ActionListener
         }
         
         JFileChooser jfc = new JFileChooser();
-        if(lastSaveFile != null)
+        if(lastDir != null)
         {
-            jfc.setCurrentDirectory(lastSaveFile.getParentFile());
+            jfc.setCurrentDirectory(lastDir);
         }
         jfc.setFileFilter(FILE_EXTENSION_FILTER);
         int res = jfc.showSaveDialog(this);
@@ -921,6 +923,7 @@ public class StatelyApp extends JFrame implements ActionListener
             writeFileSafe(f, tmp, machine.toSExp().toString());
             System.out.println("Wrote successfully to: " + f.getPath());
             lastSaveFile = f;
+            lastDir = f.getParentFile();
             lastSaveTime = LocalTime.now();
         }
         catch(Throwable t)
