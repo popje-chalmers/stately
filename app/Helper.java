@@ -49,6 +49,7 @@ public class Helper
         area.setBackground(app.colors.text_area_background);
         area.setForeground(app.colors.text_area_foreground);
         area.setFont(app.fonts.text_input);
+        area.setCaretColor(app.colors.caret_color);
         return area;
     }
 
@@ -59,6 +60,7 @@ public class Helper
         field.setBackground(app.colors.text_field_background);
         field.setForeground(app.colors.text_field_foreground);
         field.setFont(app.fonts.text_input);
+        field.setCaretColor(app.colors.caret_color);
         return field;
     }
 

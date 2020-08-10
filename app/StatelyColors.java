@@ -77,4 +77,6 @@ public class StatelyColors
     public Color sim_signal_on_other = new Color(0, 100, 200);
     //public Color sim_signal_on_input = Color.WHITE;
     //public Color sim_signal_on_other = Color.WHITE;
+
+    public Color caret_color = Color.WHITE;
 }

@@ -419,6 +419,11 @@ public class Viewer extends JPanel implements SimulationListener, StatelyListene
             showOrigin = !showOrigin;
             repaint();
         }
+        else if(k == KeyEvent.VK_0)
+        {
+            resetView();
+            repaint();
+        }
     }
 
     public void keyReleased(KeyEvent e) {}
@@ -763,7 +768,7 @@ public class Viewer extends JPanel implements SimulationListener, StatelyListene
         Pt pWorld = componentToWorld(pComp);
             
         scaleExponent += zoom;
-        scale = Math.pow(2.0, scaleExponent);
+        scale = Math.pow(2.0, 0.5 * scaleExponent);
 
         Pt now = componentToWorld(pComp);
         double differenceX = pWorld.getX() - now.getX();
