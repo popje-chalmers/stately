@@ -814,6 +814,10 @@ public class StatelyApp extends JFrame implements ActionListener
     private void open()
     {
         JFileChooser jfc = new JFileChooser();
+        if(lastSaveFile != null)
+        {
+            jfc.setCurrentDirectory(lastSaveFile.getParentFile());
+        }
         jfc.setFileFilter(FILE_EXTENSION_FILTER);
         int res = jfc.showOpenDialog(this);
         if(res == JFileChooser.APPROVE_OPTION)
@@ -855,6 +859,10 @@ public class StatelyApp extends JFrame implements ActionListener
         }
         
         JFileChooser jfc = new JFileChooser();
+        if(lastSaveFile != null)
+        {
+            jfc.setCurrentDirectory(lastSaveFile.getParentFile());
+        }
         jfc.setFileFilter(FILE_EXTENSION_FILTER);
         int res = jfc.showSaveDialog(this);
         if(res == JFileChooser.APPROVE_OPTION)
