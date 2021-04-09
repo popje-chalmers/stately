@@ -6,7 +6,7 @@ run: all
 	java -jar Stately.jar
 
 clean:
-	-rm machine/*.class app/*.class
+	-rm -f machine/*.class app/*.class
 
 distclean: clean
-	-rm Stately.jar
+	-rm -f Stately.jar
