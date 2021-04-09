@@ -4,7 +4,7 @@
 ## Compatability, dependencies, and compilation
 Tested only on Linux machines so far.
 The only dependency is Java, for example via the openjdk-11-jdk package on Ubuntu.
-After installing that, simply clone the repository and run `make`inside to compile it.
+After installing that, simply clone the repository and run `make` inside to compile it.
 The result is `Stately.jar`, which can be run via `java -jar Stately.jar`.
 
 ## Ideas
@@ -138,7 +138,7 @@ For example, the state `foo` here:
     if (nand x y)
       goto bar
     ...
-    
+
     [state bar]
     emit w
     if z
@@ -154,7 +154,7 @@ Has semantics as if it were:
         goto baz
       else
         goto zab
-    ... 
+    ...
 
 The inlinining of virtual states---as well as common sense---mean that virtual states must not form cycles.
 Also, if a virtual state might not transition to another state, a warning is raised, since this is likely unintended (and due to the inlining means that the callee states could fail to transition even when it looks like they should, due to the `goto`).
