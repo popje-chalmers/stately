@@ -51,7 +51,7 @@ public class StatelyApp extends JFrame implements ActionListener
     private Historian historian;
     private JLabel historyStepIndicator;
     
-    public StatelyApp()
+    public StatelyApp(File f)
     {
         loadConfig();
         
@@ -181,6 +181,12 @@ public class StatelyApp extends JFrame implements ActionListener
         setJMenuBar(menuBar);
 
         fixTitle();
+
+        if(f != null)
+        {
+            openFile(f);
+        }
+
         setVisible(true);
     }
 
@@ -823,15 +829,7 @@ public class StatelyApp extends JFrame implements ActionListener
         int res = jfc.showOpenDialog(this);
         if(res == JFileChooser.APPROVE_OPTION)
         {
-            File f = jfc.getSelectedFile();
-            if(readFSMFromFile(f))
-            {
-                lastSaveFile = f;
-                lastDir = f.getParentFile();
-                lastSaveTime = null;
-                lastExportTime = null;
-                fixTitle();
-            }
+            openFile(jfc.getSelectedFile());
         }
     }
 
@@ -933,6 +931,18 @@ public class StatelyApp extends JFrame implements ActionListener
         }
 
         fixTitle();
+    }
+
+    private void openFile(File f)
+    {
+        if(readFSMFromFile(f))
+        {
+            lastSaveFile = f;
+            lastDir = f.getParentFile();
+            lastSaveTime = null;
+            lastExportTime = null;
+            fixTitle();
+        }
     }
 
     private void exportFL()
